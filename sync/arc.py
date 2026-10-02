@@ -18,7 +18,7 @@ class Arc(Generic[T]):
 
     Examples:
         >>> import threading
-        >>> from rusty.sync import Arc
+        >>> from oxide.sync import Arc
         >>> arc = Arc.new([1, 2, 3])
         >>> clones = [arc.clone() for _ in range(4)]
         >>> arc.strong_count()
@@ -43,7 +43,7 @@ class Arc(Generic[T]):
             A new Arc with a reference count of one.
 
         Examples:
-            >>> from rusty.sync import Arc
+            >>> from oxide.sync import Arc
             >>> arc = Arc.new("hello")
         """
         return cls(value)
@@ -58,7 +58,7 @@ class Arc(Generic[T]):
             A new Arc sharing the same inner value.
 
         Examples:
-            >>> from rusty.sync import Arc
+            >>> from oxide.sync import Arc
             >>> original = Arc.new("shared")
             >>> clone = original.clone()
             >>> original.strong_count()

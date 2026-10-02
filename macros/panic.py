@@ -4,7 +4,7 @@ Provides intentional runtime failures (``panic``, ``todo``, ``unimplemented``)
 and RAII-style cleanup via :class:`ScopeGuard` and :func:`defer`.
 
 Example:
-    >>> from rusty.macros import ScopeGuard, defer
+    >>> from oxide.macros import ScopeGuard, defer
     >>> events = []
     >>> guard = defer(lambda: events.append("cleanup"))
     >>> guard.cancel()
@@ -24,7 +24,7 @@ class UnimplementedError(Exception):
     Used by :func:`unimplemented` and :func:`todo` to signal incomplete work.
 
     Example:
-        >>> from rusty.macros import UnimplementedError
+        >>> from oxide.macros import UnimplementedError
         >>> try:
         ...     raise UnimplementedError("coming soon")
         ... except UnimplementedError as e:
@@ -54,7 +54,7 @@ def unimplemented(message: str | None = None) -> NoReturn:
         UnimplementedError: Always.
 
     Example:
-        >>> from rusty.macros import unimplemented, UnimplementedError
+        >>> from oxide.macros import unimplemented, UnimplementedError
         >>> try:
         ...     unimplemented("not done")
         ... except UnimplementedError:
@@ -74,7 +74,7 @@ def todo(message: str | None = None) -> NoReturn:
         UnimplementedError: Always, with the message or ``"not yet implemented"``.
 
     Example:
-        >>> from rusty.macros import todo, UnimplementedError
+        >>> from oxide.macros import todo, UnimplementedError
         >>> try:
         ...     todo("finish this")
         ... except UnimplementedError as e:
@@ -91,7 +91,7 @@ class PanicError(Exception):
     of construction is captured and exposed via the :attr:`backtrace` property.
 
     Example:
-        >>> from rusty.macros import PanicError
+        >>> from oxide.macros import PanicError
         >>> try:
         ...     raise PanicError("boom")
         ... except PanicError as e:
@@ -135,7 +135,7 @@ def panic(message: str | None = None) -> NoReturn:
         PanicError: Always.
 
     Example:
-        >>> from rusty.macros import panic, PanicError
+        >>> from oxide.macros import panic, PanicError
         >>> try:
         ...     panic("fatal")
         ... except PanicError as e:
@@ -159,7 +159,7 @@ def panic_fmt(*args: Any, **kwargs: Any) -> NoReturn:
         PanicError: Always.
 
     Example:
-        >>> from rusty.macros import panic_fmt, PanicError
+        >>> from oxide.macros import panic_fmt, PanicError
         >>> try:
         ...     panic_fmt("oops", code=7)
         ... except PanicError as e:
@@ -180,7 +180,7 @@ class ScopeGuard(Generic[T]):
     :meth:`cancel` to suppress the cleanup.
 
     Example:
-        >>> from rusty.macros import ScopeGuard
+        >>> from oxide.macros import ScopeGuard
         >>> log = []
         >>> with ScopeGuard(lambda: log.append("exiting")):
         ...     pass
@@ -250,7 +250,7 @@ def defer(fn: Callable[[], Any]) -> ScopeGuard:
         A :class:`ScopeGuard` wrapping ``fn``.
 
     Example:
-        >>> from rusty.macros import defer
+        >>> from oxide.macros import defer
         >>> calls = []
         >>> g = defer(lambda: calls.append("ran"))
         >>> g.execute()

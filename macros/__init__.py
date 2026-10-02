@@ -1,12 +1,12 @@
 """Utility macros: assertions, debugging, panic helpers, and RAII cleanup.
 
 Re-exports the assertion, debugging, and panic macros from the ``macros``
-subpackage so they can be imported directly from ``rusty.macros``. Includes
+subpackage so they can be imported directly from ``oxide.macros``. Includes
 ``assert_eq``, ``assert_ne``, ``dbg``, ``format_``, ``panic``, ``todo``,
 ``unimplemented``, ``ScopeGuard``, ``defer``, and more.
 
 Example:
-    >>> from rusty.macros import assert_eq, dbg, defer
+    >>> from oxide.macros import assert_eq, dbg, defer
     >>> assert_eq(1 + 1, 2)
 """
 

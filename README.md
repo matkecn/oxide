@@ -1,21 +1,21 @@
-# rusty
+# oxide
 
 A comprehensive Rust-inspired type system and utility library for Python.
 
-`rusty` brings Rust's powerful abstractions — algebraic types, ownership semantics, trait protocols, concurrency primitives, and more — to Python, giving you expressive, type-safe patterns without leaving the Python ecosystem.
+`oxide` brings Rust's powerful abstractions — algebraic types, ownership semantics, trait protocols, concurrency primitives, and more — to Python, giving you expressive, type-safe patterns without leaving the Python ecosystem.
 
 ## Installation
 
 ```bash
-pip install rusty
+pip install oxide
 ```
 
-Or copy the `rusty/` directory into your project.
+Or copy the `oxide/` directory into your project.
 
 ## Quick Start
 
 ```python
-from rusty import Option, Some, None_, Result, Ok, Err
+from oxide import Option, Some, None_, Result, Ok, Err
 
 def divide(a: float, b: float) -> Result[float, str]:
     if b == 0:
@@ -34,23 +34,23 @@ match result:
 
 ```python
 # Import everything
-from rusty import *
+from oxide import *
 
 # Import specific types
-from rusty import Option, Some, Vec, HashMap, Duration, Path
+from oxide import Option, Some, Vec, HashMap, Duration, Path
 
 # Import from submodules
-from rusty.core.option import Some
-from rusty.collections.vec import Vec
-from rusty.sync.mutex import Mutex
+from oxide.core.option import Some
+from oxide.collections.vec import Vec
+from oxide.sync.mutex import Mutex
 
 # Use the prelude for a curated set of common types
-from rusty.prelude import *
+from oxide.prelude import *
 ```
 
 ## Module Overview
 
-### `rusty.core` — Foundational Types
+### `oxide.core` — Foundational Types
 
 | Module | Contents |
 |--------|----------|
@@ -61,7 +61,7 @@ from rusty.prelude import *
 | `convert` | `Range`, `RangeInclusive`, `RangeFrom`, and other range types |
 | `error` | `Error`, `Backtrace`, `Location`, `context` — error chaining infrastructure |
 
-### `rusty.collections` — Data Structures
+### `oxide.collections` — Data Structures
 
 | Module | Contents |
 |--------|----------|
@@ -75,7 +75,7 @@ from rusty.prelude import *
 | `linked_list` | `LinkedList` |
 | `extra` | `Drain`, `IntoIter`, `Slice` |
 
-### `rusty.iter` — Iterator Adapters
+### `oxide.iter` — Iterator Adapters
 
 | Module | Contents |
 |--------|----------|
@@ -83,7 +83,7 @@ from rusty.prelude import *
 | `adapters` | `Enumerate`, `Zip`, `Map`, `Filter`, `FilterMap`, `FlatMap`, `Flatten`, `Peekable`, `Fuse`, `Chain`, `Cycle`, `Take`, `Skip`, `Rev`, `Inspect`, `Copied`, `Cloned`, `Partition` |
 | `consumers` | `collect`, `fold`, `for_each`, `count`, `sum`, `min`, `max`, `any`, `all`, `find`, `position` |
 
-### `rusty.memory` — Ownership and Interior Mutability
+### `oxide.memory` — Ownership and Interior Mutability
 
 | Module | Contents |
 |--------|----------|
@@ -97,7 +97,7 @@ from rusty.prelude import *
 | `cow` | `Cow` — copy-on-write |
 | `pin` | `Pin`, `ManuallyDrop`, `MaybeUninit`, `NonNull`, `PhantomData`, `Borrow`, `BorrowMut` |
 
-### `rusty.sync` — Concurrency Primitives
+### `oxide.sync` — Concurrency Primitives
 
 | Module | Contents |
 |--------|----------|
@@ -110,7 +110,7 @@ from rusty.prelude import *
 | `once` | `Once` — one-time execution |
 | `semaphore` | `Semaphore` |
 
-### `rusty.time` — Time Utilities
+### `oxide.time` — Time Utilities
 
 | Module | Contents |
 |--------|----------|
@@ -118,7 +118,7 @@ from rusty.prelude import *
 | `instant` | `Instant` — monotonic timestamps |
 | `system_time` | `SystemTime` — wall-clock time |
 
-### `rusty.io` — I/O Abstractions
+### `oxide.io` — I/O Abstractions
 
 | Module | Contents |
 |--------|----------|
@@ -127,7 +127,7 @@ from rusty.prelude import *
 | `buffered` | `BufReader`, `BufWriter` |
 | `cursor` | `Cursor` — in-memory I/O, `SeekFrom` |
 
-### `rusty.fs` — Filesystem Operations
+### `oxide.fs` — Filesystem Operations
 
 | Module | Contents |
 |--------|----------|
@@ -135,7 +135,7 @@ from rusty.prelude import *
 | `file` | `File`, `OpenOptions` |
 | `metadata` | `Metadata`, `Permissions`, `FileType`, `DirEntry`, `ReadDir` |
 
-### `rusty.net` — Networking
+### `oxide.net` — Networking
 
 | Module | Contents |
 |--------|----------|
@@ -143,7 +143,7 @@ from rusty.prelude import *
 | `tcp` | `TcpStream`, `TcpListener` |
 | `udp` | `UdpSocket` |
 
-### `rusty.process` — Process Management
+### `oxide.process` — Process Management
 
 | Module | Contents |
 |--------|----------|
@@ -151,13 +151,13 @@ from rusty.prelude import *
 | `child` | `Child`, `Stdio` |
 | `output` | `ExitStatus`, `Output`, `ExitCode`, `args`, `env`, `current_dir`, `current_exe`, `home_dir`, `temp_dir` |
 
-### `rusty.async_` — Async Primitives
+### `oxide.async_` — Async Primitives
 
 | Module | Contents |
 |--------|----------|
 | `future` | `Future`, `Poll`, `Waker`, `JoinHandle`, `Stream`, `spawn`, `join_all` |
 
-### `rusty.macros` — Utility Macros
+### `oxide.macros` — Utility Macros
 
 | Module | Contents |
 |--------|----------|
@@ -165,7 +165,7 @@ from rusty.prelude import *
 | `debugging` | `dbg`, `format_`, `write_`, `writeln_`, `cfg`, `matches`, `option_env`, `include_str`, `include_bytes` |
 | `panic` | `panic`, `todo`, `unimplemented`, `ScopeGuard`, `defer` |
 
-### `rusty.other` — Miscellaneous Types
+### `oxide.other` — Miscellaneous Types
 
 `Ordering`, `ControlFlow`, `Reverse`, `Wrapping`, `Saturating`, `NonZero`, `SmallVec`, `ArrayVec`, `TinyVec`, `BitVec`, `CreateMeta`
 
@@ -174,7 +174,7 @@ from rusty.prelude import *
 ### Option & Pattern Matching
 
 ```python
-from rusty import Option, Some, None_, match, _
+from oxide import Option, Some, None_, match, _
 
 def find_user(id: int) -> Option[str]:
     users = {1: "Alice", 2: "Bob"}
@@ -193,7 +193,7 @@ print(result)  # "Found: Alice"
 ### Result & Error Handling
 
 ```python
-from rusty import Result, Ok, Err, context
+from oxide import Result, Ok, Err, context
 
 def parse_int(s: str) -> Result[int, str]:
     try:
@@ -211,7 +211,7 @@ print(parse_and_double("abc")) # Err("invalid integer: abc")
 ### Collections
 
 ```python
-from rusty import Vec, HashMap, HashSet
+from oxide import Vec, HashMap, HashSet
 
 v = Vec([1, 2, 3, 4, 5])
 v.push(6)
@@ -229,7 +229,7 @@ print(list(s))  # [1, 2, 3]
 ### Concurrency
 
 ```python
-from rusty import Mutex, Channel, spawn
+from oxide import Mutex, Channel, spawn
 import threading
 
 counter = Mutex(0)
@@ -250,7 +250,7 @@ print(counter._value)  # 10
 ### Filesystem
 
 ```python
-from rusty import Path
+from oxide import Path
 
 p = Path("/tmp/data")
 p.create_dir_all()
@@ -261,7 +261,7 @@ print((p / "file.txt").read_to_string())  # "hello world"
 ### Networking
 
 ```python
-from rusty import TcpListener, TcpStream, SocketAddr, Ipv4Addr
+from oxide import TcpListener, TcpStream, SocketAddr, Ipv4Addr
 
 addr = SocketAddr.new_v4(Ipv4Addr(127, 0, 0, 1), 8080)
 listener = TcpListener.bind(addr)
@@ -275,7 +275,7 @@ For complete documentation of every class, function, and type, see [docs/API.md]
 
 ## Philosophy
 
-`rusty` does not attempt to replicate Rust's compiler guarantees in Python — that's impossible without changing the language. Instead, it provides **idiomatic Python wrappers** around Rust's core patterns:
+`oxide` does not attempt to replicate Rust's compiler guarantees in Python — that's impossible without changing the language. Instead, it provides **idiomatic Python wrappers** around Rust's core patterns:
 
 - **Option/Result** for explicit null and error handling
 - **Enum/Variant** for tagged unions with pattern matching
@@ -284,7 +284,7 @@ For complete documentation of every class, function, and type, see [docs/API.md]
 - **Sync primitives** for safe concurrent programming
 - **Iterator adapters** for functional data processing
 
-Use `rusty` to write more expressive, maintainable Python code that clearly communicates intent.
+Use `oxide` to write more expressive, maintainable Python code that clearly communicates intent.
 
 ## License
 

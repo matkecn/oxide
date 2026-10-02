@@ -1,6 +1,6 @@
 """Rust-inspired collection types — Vec, HashMap, HashSet, BTreeMap, and more.
 
-This package provides the public collection types of the ``rusty`` library,
+This package provides the public collection types of the ``oxide`` library,
 mirroring the standard collections of the Rust standard library: ``Vec``,
 ``HashMap``, ``HashSet``, ``BTreeMap``, ``BTreeSet``, ``VecDeque``,
 ``BinaryHeap``, and ``LinkedList``, plus supporting types ``Drain``,

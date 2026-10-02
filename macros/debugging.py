@@ -5,7 +5,7 @@ value inspection (``dbg``/``dbg_``), configuration lookup, compile-time
 file inclusion, and pattern matching.
 
 Example:
-    >>> from rusty.macros import dbg, format_
+    >>> from oxide.macros import dbg, format_
     >>> format_("{} and {}", "a", "b")
     'a and b'
 """
@@ -27,7 +27,7 @@ class Formatter:
     string concatenation.
 
     Example:
-        >>> from rusty.macros import Formatter
+        >>> from oxide.macros import Formatter
         >>> f = Formatter()
         >>> f.write_str("hello")
         >>> f.write_char("!")
@@ -101,7 +101,7 @@ def format_(template: str, *args: Any, **kwargs: Any) -> str:
         The formatted string.
 
     Example:
-        >>> from rusty.macros import format_
+        >>> from oxide.macros import format_
         >>> format_("{} = {value}", 3, value="three")
         '3 = three'
     """
@@ -121,7 +121,7 @@ def write_(buf: Any, template: str, *args: Any, **kwargs: Any) -> None:
         **kwargs: Keyword values for the template.
 
     Example:
-        >>> from rusty.macros import write_
+        >>> from oxide.macros import write_
         >>> out = []
         >>> write_(out, "x={}", 42)
         >>> out
@@ -146,7 +146,7 @@ def writeln_(buf: Any, template: str = "", *args: Any, **kwargs: Any) -> None:
         **kwargs: Keyword values for the template.
 
     Example:
-        >>> from rusty.macros import writeln_
+        >>> from oxide.macros import writeln_
         >>> out = []
         >>> writeln_(out, "{}!", "hi")
         >>> out
@@ -173,7 +173,7 @@ def dbg_(*args: Any) -> Any:
         arguments.
 
     Example:
-        >>> import rusty.macros.debugging as d
+        >>> import oxide.macros.debugging as d
         >>> d.dbg_("hello")  # doctest: +SKIP
         [<stdin>:1] 'hello'
         'hello'
@@ -245,7 +245,7 @@ def cfg(key: str, default: str = "") -> str:
         The environment variable value or ``default``.
 
     Example:
-        >>> from rusty.macros import cfg
+        >>> from oxide.macros import cfg
         >>> cfg("HOST", "localhost")  # reads CFG_HOST
         'localhost'
     """
@@ -277,7 +277,7 @@ def option_env(key: str) -> str | None:
         The variable's value, or ``None`` if it is not set.
 
     Example:
-        >>> from rusty.macros import option_env
+        >>> from oxide.macros import option_env
         >>> option_env("PATH") is None or isinstance(option_env("PATH"), str)
         True
     """
@@ -335,7 +335,7 @@ def matches(value: Any, pattern: Any) -> bool:
         Whether the value matches the pattern.
 
     Example:
-        >>> from rusty.macros import matches
+        >>> from oxide.macros import matches
         >>> matches(4, lambda n: n > 3)
         True
         >>> matches("a", "a")

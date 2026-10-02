@@ -16,7 +16,7 @@ class Atomic(Generic[T]):
     across threads.
 
     Examples:
-        >>> from rusty.sync import Atomic
+        >>> from oxide.sync import Atomic
         >>> count = Atomic.new([0])
         >>> count.store([1])
         >>> count.load()
@@ -95,7 +95,7 @@ class AtomicBool:
     read and modify concurrently from multiple threads.
 
     Examples:
-        >>> from rusty.sync import AtomicBool
+        >>> from oxide.sync import AtomicBool
         >>> flag = AtomicBool.new(True)
         >>> flag.compare_and_set(True, False)
         True
@@ -237,7 +237,7 @@ class AtomicInt:
     modify concurrently from multiple threads without race conditions.
 
     Examples:
-        >>> from rusty.sync import AtomicInt
+        >>> from oxide.sync import AtomicInt
         >>> a = AtomicInt.new(10)
         >>> a.fetch_add(5)
         10

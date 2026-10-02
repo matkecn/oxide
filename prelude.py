@@ -1,11 +1,11 @@
-"""Curated imports of the most commonly used ``rusty`` types.
+"""Curated imports of the most commonly used ``oxide`` types.
 
-Provides a convenient ``from rusty.prelude import *``-style entry point that
+Provides a convenient ``from oxide.prelude import *``-style entry point that
 re-exports the most frequently used types and functions, so code can avoid
 long import lists.
 
 Example:
-    >>> from rusty.prelude import Option, Vec, Result
+    >>> from oxide.prelude import Option, Vec, Result
     >>> v = Vec([1, 2, 3])
     >>> len(v)
     3

@@ -20,7 +20,7 @@ class MatchError(Exception):
         >>> match(1).case_eq(2, "two").execute()
         Traceback (most recent call last):
             ...
-        rusty.core.enum.MatchError: no match found for 1
+        oxide.core.enum.MatchError: no match found for 1
     """
     pass
 

@@ -6,7 +6,7 @@ and small-vector data structures (``SmallVec``, ``ArrayVec``, ``TinyVec``,
 ``BitVec``) as well as the :class:`CreateMeta` metadata type.
 
 Example:
-    >>> from rusty import Ordering, SmallVec
+    >>> from oxide import Ordering, SmallVec
     >>> Ordering.from_cmp(1, 2).is_less()
     True
 """
@@ -27,7 +27,7 @@ class Ordering:
     :meth:`reverse`.
 
     Example:
-        >>> from rusty import Ordering
+        >>> from oxide import Ordering
         >>> Ordering.from_cmp(3, 1).is_greater()
         True
         >>> Ordering.less().reverse().is_greater()
@@ -87,7 +87,7 @@ class Ordering:
             ``Less`` if ``a < b``, ``Greater`` if ``a > b``, else ``Equal``.
 
         Example:
-            >>> from rusty import Ordering
+            >>> from oxide import Ordering
             >>> Ordering.from_cmp(5, 2).is_greater()
             True
         """
@@ -204,7 +204,7 @@ class ControlFlow:
     to produce a continue or break variant carrying an optional value.
 
     Example:
-        >>> from rusty import ControlFlow
+        >>> from oxide import ControlFlow
         >>> ControlFlow.cont(1).is_continue()
         True
         >>> ControlFlow.brk(9).break_value()
@@ -323,7 +323,7 @@ class Reverse(Generic[T]):
     the wrapped values in reverse, making it easy to sort in descending order.
 
     Example:
-        >>> from rusty import Reverse
+        >>> from oxide import Reverse
         >>> Reverse(2) < Reverse(1)
         True
         >>> sorted([Reverse(3), Reverse(1), Reverse(2)])
@@ -400,7 +400,7 @@ class Wrapping(Generic[T]):
     32 bits (``0xFFFFFFFF``) instead of overflowing.
 
     Example:
-        >>> from rusty import Wrapping
+        >>> from oxide import Wrapping
         >>> Wrapping(0xFFFFFFFF).wrapping_add(1).into_inner()
         0
     """
@@ -532,7 +532,7 @@ class Saturating(Generic[T]):
     overflowing.
 
     Example:
-        >>> from rusty import Saturating
+        >>> from oxide import Saturating
         >>> Saturating(2**31 - 1).saturating_add(1).into_inner()
         2147483647
     """
@@ -639,7 +639,7 @@ class NonZero(Generic[T]):
     instances always hold a non-zero value.
 
     Example:
-        >>> from rusty import NonZero
+        >>> from oxide import NonZero
         >>> NonZero.new(5).get()
         5
         >>> NonZero.try_new(0) is None
@@ -768,7 +768,7 @@ class SmallVec(Generic[T]):
     allocation overhead for small vectors.
 
     Example:
-        >>> from rusty import SmallVec
+        >>> from oxide import SmallVec
         >>> v = SmallVec([1, 2, 3])
         >>> v.push(4)
         >>> list(v)
@@ -933,7 +933,7 @@ class ArrayVec(Generic[T]):
     capacity; pushing beyond capacity raises :class:`OverflowError`.
 
     Example:
-        >>> from rusty import ArrayVec
+        >>> from oxide import ArrayVec
         >>> v = ArrayVec(2)
         >>> v.push(1)
         >>> v.push(2)
@@ -1074,7 +1074,7 @@ class TinyVec(Generic[T]):
     :class:`SmallVec`, the inline region is emptied when spilling occurs.
 
     Example:
-        >>> from rusty import TinyVec
+        >>> from oxide import TinyVec
         >>> v = TinyVec([1, 2])
         >>> v.push(3)
         >>> list(v)
@@ -1214,7 +1214,7 @@ class BitVec:
     counting, and byte packing.
 
     Example:
-        >>> from rusty import BitVec
+        >>> from oxide import BitVec
         >>> v = BitVec([True, False, True])
         >>> v.get(0)
         True
@@ -1262,7 +1262,7 @@ class BitVec:
             A BitVec containing one boolean per bit of the input.
 
         Example:
-            >>> from rusty import BitVec
+            >>> from oxide import BitVec
             >>> v = BitVec.from_bytes(b"\\x05")
             >>> v.get(0), v.get(2)
             (True, True)
@@ -1432,7 +1432,7 @@ class Drain(Generic[T]):
     items and clears the source once fully iterated.
 
     Example:
-        >>> from rusty import Drain
+        >>> from oxide import Drain
         >>> items = [1, 2, 3]
         >>> d = Drain(items)
         >>> list(d)

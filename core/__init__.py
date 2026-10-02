@@ -1,4 +1,4 @@
-"""Core foundational types for the rusty library.
+"""Core foundational types for the oxide library.
 
 Provides algebraic types (Option, Result), tagged unions (Enum, Variant),
 trait protocols for duck-typed polymorphism, range types, and error infrastructure.

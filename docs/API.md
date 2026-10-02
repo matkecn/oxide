@@ -1,6 +1,6 @@
-# rusty API Reference
+# oxide API Reference
 
-Complete API documentation for all classes, functions, and types in the rusty library.
+Complete API documentation for all classes, functions, and types in the oxide library.
 
 ---
 
@@ -89,7 +89,7 @@ Complete API documentation for all classes, functions, and types in the rusty li
 `Option[T]` represents an optional value. Every `Option` is either `Some(value)` or `None_`.
 
 ```python
-from rusty import Option, Some, None_
+from oxide import Option, Some, None_
 ```
 
 #### Classes
@@ -132,7 +132,7 @@ none = None_          # Alias
 #### Usage Examples
 
 ```python
-from rusty import Option, Some, None_, _
+from oxide import Option, Some, None_, _
 
 # Creating options
 x: Option[int] = Some(5)
@@ -156,7 +156,7 @@ default_val = y.unwrap_or(0)      # 0
 `Result[T, E]` represents success or failure. Every `Result` is either `Ok(value)` or `Err(error)`.
 
 ```python
-from rusty import Result, Ok, Err
+from oxide import Result, Ok, Err
 ```
 
 #### Classes
@@ -193,7 +193,7 @@ from rusty import Result, Ok, Err
 #### Error Propagation
 
 ```python
-from rusty import Result, Ok, Err, propagate, ask, try_ask
+from oxide import Result, Ok, Err, propagate, ask, try_ask
 
 # propagate decorator enables ?-like syntax
 @propagate
@@ -219,7 +219,7 @@ def dangerous_operation() -> int:
 `Enum` provides tagged unions with pattern matching.
 
 ```python
-from rusty import Enum, match, _
+from oxide import Enum, match, _
 ```
 
 #### Classes
@@ -277,7 +277,7 @@ The `Match` class provides a fluent API for pattern matching:
 17 trait protocols for Rust-style polymorphism.
 
 ```python
-from rusty import (
+from oxide import (
     CloneTrait, CopyTrait, DebugTrait, DisplayTrait, DefaultTrait,
     EqTrait, OrdTrait, HashTrait, DropTrait,
     FromTrait, IntoTrait, TryFromTrait, TryIntoTrait,
@@ -332,7 +332,7 @@ drop(value)            # Explicit drop
 Rust-style range types.
 
 ```python
-from rusty import Range, RangeInclusive, RangeFrom, RangeTo, RangeToInclusive, RangeFull
+from oxide import Range, RangeInclusive, RangeFrom, RangeTo, RangeToInclusive, RangeFull
 ```
 
 | Class | Syntax | Description |
@@ -358,7 +358,7 @@ from rusty import Range, RangeInclusive, RangeFrom, RangeTo, RangeToInclusive, R
 Rich error handling infrastructure.
 
 ```python
-from rusty import Error, Backtrace, Location, context
+from oxide import Error, Backtrace, Location, context
 ```
 
 **`Error`** — Enhanced exception with source chaining.
@@ -391,7 +391,7 @@ context("during parsing", original_error)  # Create error with context
 `Vec[T]` — Growable array with Rust-style API.
 
 ```python
-from rusty import Vec
+from oxide import Vec
 ```
 
 | Method | Signature | Description |
@@ -436,7 +436,7 @@ from rusty import Vec
 `HashMap[K, V]` — Hash-based key-value map with Entry API.
 
 ```python
-from rusty import HashMap, Entry, OccupiedEntry, VacantEntry
+from oxide import HashMap, Entry, OccupiedEntry, VacantEntry
 ```
 
 | Method | Signature | Description |
@@ -487,7 +487,7 @@ map.or_insert_with("key", lambda: expensive_computation())
 `HashSet[T]` — Hash-based set with set operations.
 
 ```python
-from rusty import HashSet
+from oxide import HashSet
 ```
 
 | Method | Signature | Description |
@@ -516,7 +516,7 @@ from rusty import HashSet
 `BTreeMap[K, V]` — Ordered map with sorted key iteration.
 
 ```python
-from rusty import BTreeMap
+from oxide import BTreeMap
 ```
 
 | Method | Signature | Description |
@@ -542,7 +542,7 @@ from rusty import BTreeMap
 `BTreeSet[T]` — Ordered set with sorted iteration.
 
 ```python
-from rusty import BTreeSet
+from oxide import BTreeSet
 ```
 
 | Method | Signature | Description |
@@ -566,7 +566,7 @@ from rusty import BTreeSet
 `VecDeque[T]` — Double-ended queue with O(1) push/pop at both ends.
 
 ```python
-from rusty import VecDeque
+from oxide import VecDeque
 ```
 
 | Method | Signature | Description |
@@ -594,7 +594,7 @@ from rusty import VecDeque
 `BinaryHeap[T]` — Max-heap priority queue.
 
 ```python
-from rusty import BinaryHeap
+from oxide import BinaryHeap
 ```
 
 | Method | Signature | Description |
@@ -616,7 +616,7 @@ from rusty import BinaryHeap
 `LinkedList[T]` — Doubly-linked list.
 
 ```python
-from rusty import LinkedList
+from oxide import LinkedList
 ```
 
 | Method | Signature | Description |
@@ -644,7 +644,7 @@ from rusty import LinkedList
 `Iter[T]` — Chainable iterator with built-in adapters and consumers.
 
 ```python
-from rusty import Iter
+from oxide import Iter
 ```
 
 #### Creating Iterators
@@ -703,7 +703,7 @@ Iter.chain(a, b, c)                      # Chained iterators
 18 standalone adapter types for lazy evaluation.
 
 ```python
-from rusty import (
+from oxide import (
     Enumerate, Zip, Map, Filter, FilterMap, FlatMap, Flatten,
     Peekable, Fuse, Chain, Cycle, Take, Skip, Rev, Inspect,
     Copied, Cloned, Partition,
@@ -738,7 +738,7 @@ from rusty import (
 Standalone functions that consume iterables.
 
 ```python
-from rusty.iter.consumers import (
+from oxide.iter.consumers import (
     collect, fold, for_each, count, sum, min, max, any, all,
     find, position, zip, enumerate, chain, peek, step_by,
     skip, take, rev, inspect, copied, cloned, filter, filter_map,
@@ -755,7 +755,7 @@ from rusty.iter.consumers import (
 `Box[T]` — Heap-allocated value with automatic cleanup.
 
 ```python
-from rusty import Box
+from oxide import Box
 ```
 
 | Method | Signature | Description |
@@ -782,7 +782,7 @@ with Box.new(expensive_value()) as b:
 `Rc[T]` — Single-threaded reference-counted shared ownership.
 
 ```python
-from rusty import Rc, Weak
+from oxide import Rc, Weak
 ```
 
 | Method | Signature | Description |
@@ -811,7 +811,7 @@ from rusty import Rc, Weak
 `Arc[T]` — Thread-safe reference-counted shared ownership.
 
 ```python
-from rusty import Arc
+from oxide import Arc
 ```
 
 | Method | Signature | Description |
@@ -831,7 +831,7 @@ from rusty import Arc
 `Cell[T]` — Interior mutability for Copy types.
 
 ```python
-from rusty import Cell
+from oxide import Cell
 ```
 
 | Method | Signature | Description |
@@ -857,7 +857,7 @@ print(c.get())  # 10
 `RefCell[T]` — Runtime borrow-checked interior mutability.
 
 ```python
-from rusty import RefCell, Ref, RefMut
+from oxide import RefCell, Ref, RefMut
 ```
 
 **`RefCell[T]`**
@@ -911,7 +911,7 @@ except BorrowMutError:
 `OnceCell[T]` — Cell that can be initialized exactly once.
 
 ```python
-from rusty import OnceCell
+from oxide import OnceCell
 ```
 
 | Method | Signature | Description |
@@ -937,7 +937,7 @@ print(cell.get())  # Computed value
 `Lazy[T]` — Deferred computation, evaluated on first access.
 
 ```python
-from rusty import Lazy
+from oxide import Lazy
 ```
 
 | Method | Signature | Description |
@@ -961,7 +961,7 @@ result = lazy.force()  # Computed on first call
 `Cow[T]` — Copy-on-write abstraction.
 
 ```python
-from rusty import Cow, CowBorrowed, CowOwned
+from oxide import Cow, CowBorrowed, CowOwned
 ```
 
 | Method | Signature | Description |
@@ -987,7 +987,7 @@ owned = data.into_owned()  # Copies here
 `Pin[T]` — Pinned reference preventing moves.
 
 ```python
-from rusty import Pin, ManuallyDrop, MaybeUninit, NonNull, PhantomData
+from oxide import Pin, ManuallyDrop, MaybeUninit, NonNull, PhantomData
 ```
 
 **`Pin[T]`** — Prevents value from being moved.
@@ -1041,7 +1041,7 @@ from rusty import Pin, ManuallyDrop, MaybeUninit, NonNull, PhantomData
 `Mutex[T]` — Mutual exclusion lock with `MutexGuard`.
 
 ```python
-from rusty import Mutex, MutexGuard
+from oxide import Mutex, MutexGuard
 ```
 
 **`Mutex[T]`**
@@ -1082,7 +1082,7 @@ guard.release()
 `RwLock[T]` — Readers-writer lock for concurrent reads with exclusive writes.
 
 ```python
-from rusty import RwLock, RwLockReadGuard, RwLockWriteGuard
+from oxide import RwLock, RwLockReadGuard, RwLockWriteGuard
 ```
 
 | Method | Signature | Description |
@@ -1113,7 +1113,7 @@ with data.write() as w:
 `Channel[T]` — Multi-producer single-consumer message passing.
 
 ```python
-from rusty import Channel, Sender, Receiver
+from oxide import Channel, Sender, Receiver
 ```
 
 **`Channel[T]`**
@@ -1163,7 +1163,7 @@ msg = receiver.recv_blocking(timeout=5.0)
 `Atomic[T]`, `AtomicBool`, `AtomicInt` — Lock-free thread-safe primitives.
 
 ```python
-from rusty import Atomic, AtomicBool, AtomicInt
+from oxide import Atomic, AtomicBool, AtomicInt
 ```
 
 **`AtomicBool`**
@@ -1212,7 +1212,7 @@ counter.store(42)       # Atomic write
 `Barrier` — Blocks until N threads arrive.
 
 ```python
-from rusty import Barrier
+from oxide import Barrier
 ```
 
 | Method | Signature | Description |
@@ -1236,7 +1236,7 @@ def worker():
 `Condvar` — Condition variable for thread coordination.
 
 ```python
-from rusty import Condvar
+from oxide import Condvar
 ```
 
 | Method | Signature | Description |
@@ -1269,7 +1269,7 @@ def consumer():
 `Once` — Execute a function exactly once across threads.
 
 ```python
-from rusty import Once
+from oxide import Once
 ```
 
 | Method | Signature | Description |
@@ -1292,7 +1292,7 @@ def initialize():
 `Semaphore` — Counting semaphore for concurrency limiting.
 
 ```python
-from rusty import Semaphore
+from oxide import Semaphore
 ```
 
 | Method | Signature | Description |
@@ -1319,7 +1319,7 @@ def task():
 `Duration` — A span of time with arithmetic operations.
 
 ```python
-from rusty import Duration, UNIX_EPOCH
+from oxide import Duration, UNIX_EPOCH
 ```
 
 | Method | Signature | Description |
@@ -1356,7 +1356,7 @@ print(d.as_millis())  # 5500
 `Instant` — Monotonic timestamp for measuring elapsed time.
 
 ```python
-from rusty import Instant
+from oxide import Instant
 ```
 
 | Method | Signature | Description |
@@ -1385,7 +1385,7 @@ print(f"Took {elapsed.as_millis()}ms")
 `SystemTime` — Wall-clock time with datetime conversion.
 
 ```python
-from rusty import SystemTime
+from oxide import SystemTime
 ```
 
 | Method | Signature | Description |
@@ -1408,7 +1408,7 @@ from rusty import SystemTime
 `Read` — Byte reading trait.
 
 ```python
-from rusty import Read, BufRead
+from oxide import Read, BufRead
 ```
 
 | Method | Signature | Description |
@@ -1436,7 +1436,7 @@ from rusty import Read, BufRead
 `Write` — Byte and string writing trait.
 
 ```python
-from rusty import Write
+from oxide import Write
 ```
 
 | Method | Signature | Description |
@@ -1452,7 +1452,7 @@ from rusty import Write
 `BufReader` — Buffered reader with configurable capacity.
 
 ```python
-from rusty import BufReader
+from oxide import BufReader
 ```
 
 | Method | Signature | Description |
@@ -1474,7 +1474,7 @@ from rusty import BufReader
 `BufWriter` — Buffered writer with automatic flushing.
 
 ```python
-from rusty import BufWriter
+from oxide import BufWriter
 ```
 
 | Method | Signature | Description |
@@ -1493,7 +1493,7 @@ from rusty import BufWriter
 `Cursor[T]` — In-memory Read+Write+Seek operations.
 
 ```python
-from rusty import Cursor, SeekFrom
+from oxide import Cursor, SeekFrom
 ```
 
 **`Cursor[T]`**
@@ -1526,7 +1526,7 @@ SeekFrom.end(0)        # From end
 `Path` — Immutable filesystem path.
 
 ```python
-from rusty import Path
+from oxide import Path
 ```
 
 | Method | Signature | Description |
@@ -1574,7 +1574,7 @@ print((p / "file.txt").read_to_string())
 `PathBuf` — Mutable filesystem path.
 
 ```python
-from rusty import PathBuf
+from oxide import PathBuf
 ```
 
 | Method | Signature | Description |
@@ -1596,7 +1596,7 @@ from rusty import PathBuf
 `File` — File I/O with configurable open modes.
 
 ```python
-from rusty import File, OpenOptions
+from oxide import File, OpenOptions
 ```
 
 **`File`**
@@ -1652,7 +1652,7 @@ file = (OpenOptions.new()
 `TcpStream` — TCP client connection.
 
 ```python
-from rusty import TcpStream
+from oxide import TcpStream
 ```
 
 | Method | Signature | Description |
@@ -1676,7 +1676,7 @@ from rusty import TcpStream
 `TcpListener` — TCP server socket.
 
 ```python
-from rusty import TcpListener
+from oxide import TcpListener
 ```
 
 | Method | Signature | Description |
@@ -1700,7 +1700,7 @@ for conn in listener.incoming():
 `UdpSocket` — UDP datagram socket.
 
 ```python
-from rusty import UdpSocket
+from oxide import UdpSocket
 ```
 
 | Method | Signature | Description |
@@ -1718,7 +1718,7 @@ from rusty import UdpSocket
 ### Address Types
 
 ```python
-from rusty import Ipv4Addr, Ipv6Addr, IpAddr, SocketAddr, Shutdown
+from oxide import Ipv4Addr, Ipv6Addr, IpAddr, SocketAddr, Shutdown
 ```
 
 **`Ipv4Addr`**
@@ -1763,7 +1763,7 @@ addr = SocketAddr.from_str("127.0.0.1:8080")
 `Command` — Build and spawn child processes.
 
 ```python
-from rusty import Command, Stdio
+from oxide import Command, Stdio
 ```
 
 | Method | Signature | Description |
@@ -1797,7 +1797,7 @@ print(output.stdout_str())
 `Child` — Handle to a running process.
 
 ```python
-from rusty import Child, Stdio
+from oxide import Child, Stdio
 ```
 
 | Method | Signature | Description |
@@ -1845,7 +1845,7 @@ Stdio.from_path()  # Redirect to file
 #### OS Utility Functions
 
 ```python
-from rusty import args, env, current_dir, current_exe, home_dir, temp_dir
+from oxide import args, env, current_dir, current_exe, home_dir, temp_dir
 
 args()           # Get command line arguments
 env("KEY")       # Get environment variable
@@ -1864,7 +1864,7 @@ temp_dir()       # Get temporary directory
 `Future[T]` — Async computation.
 
 ```python
-from rusty import Future, Poll, Waker, spawn
+from oxide import Future, Poll, Waker, spawn
 ```
 
 | Method | Signature | Description |
@@ -1895,7 +1895,7 @@ result = await future
 `Poll[T]` — Pending/Ready state for async operations.
 
 ```python
-from rusty import Poll
+from oxide import Poll
 ```
 
 | Method | Signature | Description |
@@ -1916,7 +1916,7 @@ from rusty import Poll
 `Stream[T]` — Async iterator.
 
 ```python
-from rusty import Stream
+from oxide import Stream
 ```
 
 | Method | Signature | Description |
@@ -1943,7 +1943,7 @@ from rusty import Stream
 `JoinHandle[T]` — Handle to a spawned task.
 
 ```python
-from rusty import JoinHandle, spawn
+from oxide import JoinHandle, spawn
 ```
 
 | Method | Signature | Description |
@@ -1968,7 +1968,7 @@ result = handle.get_result()  # Blocks until done
 ### Assertions
 
 ```python
-from rusty import assert_eq, assert_ne, assert_, debug_assert, debug_assert_eq, debug_assert_ne
+from oxide import assert_eq, assert_ne, assert_, debug_assert, debug_assert_eq, debug_assert_ne
 ```
 
 | Function | Description |
@@ -1985,7 +1985,7 @@ from rusty import assert_eq, assert_ne, assert_, debug_assert, debug_assert_eq, 
 ### Debugging
 
 ```python
-from rusty import Formatter, format_, write_, writeln_, dbg_, dbg, cfg, matches
+from oxide import Formatter, format_, write_, writeln_, dbg_, dbg, cfg, matches
 ```
 
 | Function | Description |
@@ -2016,7 +2016,7 @@ print(f.finish())  # "Hello World"
 ### Panic
 
 ```python
-from rusty import panic, todo, unimplemented, ScopeGuard, defer
+from oxide import panic, todo, unimplemented, ScopeGuard, defer
 ```
 
 | Function | Description |
@@ -2046,7 +2046,7 @@ guard.cancel()  # Prevent execution
 `Ordering` — Comparison result.
 
 ```python
-from rusty import Ordering
+from oxide import Ordering
 ```
 
 | Constant | Value | Description |
@@ -2072,7 +2072,7 @@ from rusty import Ordering
 `ControlFlow` — Break/Continue control flow.
 
 ```python
-from rusty import ControlFlow
+from oxide import ControlFlow
 ```
 
 | Method | Description |
@@ -2188,7 +2188,7 @@ class CreateMeta:
 Import common types with a single import:
 
 ```python
-from rusty.prelude import *
+from oxide.prelude import *
 ```
 
 Includes: `Option`, `Some`, `None_`, `Result`, `Ok`, `Err`, `Enum`, `match`, `_`, `Vec`, `HashMap`, `HashSet`, `Box`, `Rc`, `Arc`, `Cell`, `RefCell`, `OnceCell`, `Lazy`, `Cow`, `Mutex`, `RwLock`, `Channel`, `Duration`, `Instant`, `SystemTime`, `Path`, `File`, `TcpStream`, `TcpListener`, `UdpSocket`, `Command`, `Child`, `Future`, `Poll`, `Stream`, and more.

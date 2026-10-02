@@ -5,7 +5,7 @@ Provides ``assert_eq``, ``assert_ne``, ``assert_``, ``assert_matches``,
 ``debug_assert_eq``, ``debug_assert_ne``) for runtime correctness checks.
 
 Example:
-    >>> from rusty.macros import assert_eq
+    >>> from oxide.macros import assert_eq
     >>> assert_eq(2 + 2, 4)
 """
 
@@ -42,12 +42,12 @@ def assert_(condition: bool, message: str = "assertion failed") -> None:
         AssertionError: If ``condition`` is False.
 
     Example:
-        >>> import rusty.macros.assertions as a
+        >>> import oxide.macros.assertions as a
         >>> a.assert_(1 < 2)
         >>> a.assert_(False, "must be true")
         Traceback (most recent call last):
         ...
-        rusty.macros.assertions.AssertionError: must be true
+        oxide.macros.assertions.AssertionError: must be true
     """
     if not condition:
         raise AssertionError(message)
@@ -66,7 +66,7 @@ def assert_eq(a: Any, b: Any, message: str | None = None) -> None:
         AssertionError: If ``a != b``.
 
     Example:
-        >>> from rusty.macros import assert_eq
+        >>> from oxide.macros import assert_eq
         >>> assert_eq(2 + 2, 4)
     """
     if a != b:
@@ -87,7 +87,7 @@ def assert_ne(a: Any, b: Any, message: str | None = None) -> None:
         AssertionError: If ``a == b``.
 
     Example:
-        >>> from rusty.macros import assert_ne
+        >>> from oxide.macros import assert_ne
         >>> assert_ne(1, 2)
     """
     if a == b:
@@ -110,7 +110,7 @@ def assert_matches(value: Any, pattern: str, message: str | None = None) -> None
         AssertionError: If the value does not match the pattern.
 
     Example:
-        >>> from rusty.macros import assert_matches
+        >>> from oxide.macros import assert_matches
         >>> assert_matches("hello-42", r"hello-\\d+")
     """
     if not re.match(pattern, str(value)):
@@ -131,7 +131,7 @@ def assert_type(value: Any, expected: type, message: str | None = None) -> None:
         AssertionError: If ``value`` is not an instance of ``expected``.
 
     Example:
-        >>> from rusty.macros import assert_type
+        >>> from oxide.macros import assert_type
         >>> assert_type("hi", str)
     """
     if not isinstance(value, expected):
@@ -154,7 +154,7 @@ def debug_assert(condition: bool, message: str = "") -> None:
         AssertionError: If ``condition`` is False and ``__debug__`` is True.
 
     Example:
-        >>> from rusty.macros import debug_assert
+        >>> from oxide.macros import debug_assert
         >>> debug_assert(3 > 1)
     """
     if __debug__:

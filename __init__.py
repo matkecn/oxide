@@ -1,4 +1,4 @@
-"""The ``rusty`` library — Rust-inspired data structures and utilities.
+"""The ``oxide`` library — Rust-inspired data structures and utilities.
 
 A Python re-imagining of common Rust standard-library types and macros,
 including ``Option``/``Result``, iterators, collections, smart pointers,
@@ -6,11 +6,11 @@ synchronization primitives, time, I/O, filesystem, networking, process, and
 async facilities.
 
 The package re-exports the full public API for convenient import, e.g.
-``from rusty import Option, Vec, HashMap``. A curated subset is also available
-from :mod:`rusty.prelude`.
+``from oxide import Option, Vec, HashMap``. A curated subset is also available
+from :mod:`oxide.prelude`.
 
 Example:
-    >>> from rusty import Some, Vec
+    >>> from oxide import Some, Vec
     >>> Some(5).unwrap()
     5
 """
