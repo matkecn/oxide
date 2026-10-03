@@ -18,6 +18,7 @@ from .lazy import Lazy
 from .cow import Cow, CowBorrowed, CowOwned
 from .pin import Pin, ManuallyDrop, MaybeUninit, NonNull, PhantomData, Borrow, BorrowMut
 from .arc import Arc
+from .mem import size_of, needs_drop, forget
 
 __all__ = [
     "Box",
@@ -42,4 +43,7 @@ __all__ = [
     "BorrowError",
     "BorrowMutError",
     "Arc",
+    "size_of",
+    "needs_drop",
+    "forget",
 ]
