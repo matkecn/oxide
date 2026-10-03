@@ -160,7 +160,7 @@ from .items import (
     track_caller,
     used,
 )
-from .masterclass import MasterMethod, is_master, masterclass
+from .masterclass import MasterMethod, is_master, masterclass, mastermethod
 
 __all__ = [
     # type-level attributes, re-exported from oxide.derive
@@ -256,5 +256,6 @@ __all__ = [
     "masterclass",
     # caller tracking
     "caller_location",
+    "mastermethod"
 ]
 
