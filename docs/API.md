@@ -520,8 +520,9 @@ from oxide import Vec
 | `append(other)` | `-> None` | Append another vec or any iterable |
 | `extend(values)` | `-> None` | Extend with iterable |
 | `split_off(at)` | `-> Vec[T]` | Split at index |
-| `iter()` | `-> Iterator[T]` | Get iterator |
-| `into_iter()` | `-> Iterator[T]` | Consume into iterator |
+| `iter()` | `-> Iter[T]` | Get iterator |
+| `into_iter()` | `-> Iter[T]` | Consume into iterator |
+| `enumerate()` | `-> Iter[tuple[int, T]]` | Index/value pairs |
 | `to_list()` | `-> list[T]` | Convert to Python list |
 
 ---
@@ -550,10 +551,13 @@ from oxide import HashMap, Entry, OccupiedEntry, VacantEntry
 | `entry(key)` | `-> Entry[K, V]` | Get entry for key |
 | `or_insert(key, value)` | `-> V` | Insert if absent |
 | `extend(values)` | `-> None` | Extend with pairs |
-| `iter()` | `-> Iterator[tuple[K, V]]` | Iterate over pairs |
-| `keys()` | `-> Iterator[K]` | Iterate over keys |
-| `values()` | `-> Iterator[V]` | Iterate over values |
-| `drain()` | `-> Iterator[tuple[K, V]]` | Remove and iterate |
+| `iter()` | `-> Iter[tuple[K, V]]` | Iterate over pairs |
+| `keys()` | `-> Iter[K]` | Iterate over keys |
+| `values()` | `-> Iter[V]` | Iterate over values |
+| `drain()` | `-> Iter[tuple[K, V]]` | Remove and iterate |
+| `into_iter()` | `-> Iter[tuple[K, V]]` | Consume into iterator |
+| `iter_mut()` | `-> Iter[MutableValue[K, V]]` | Mutable refs over pairs |
+| `values_mut()` | `-> Iter[MutableValue[K, V]]` | Mutable refs over values |
 | `clone()` | `-> HashMap[K, V]` | Deep clone |
 | `to_dict()` | `-> dict[K, V]` | Convert to Python dict |
 
@@ -621,8 +625,9 @@ from oxide import HashSet
 | `is_disjoint(other)` | `-> bool` | Check if disjoint |
 | `is_subset(other)` | `-> bool` | Check if subset |
 | `is_superset(other)` | `-> bool` | Check if superset |
-| `iter()` | `-> Iterator[T]` | Iterate over elements |
-| `drain()` | `-> Iterator[T]` | Remove and iterate |
+| `iter()` | `-> Iter[T]` | Iterate over elements |
+| `drain()` | `-> Iter[T]` | Remove and iterate |
+| `into_iter()` | `-> Iter[T]` | Consume into iterator |
 
 ---
 
@@ -644,10 +649,11 @@ from oxide import BTreeMap
 | `contains_key(key)` | `-> bool` | Check if key exists |
 | `first_key_value()` | `-> tuple[K, V] \| None` | Get smallest key-value |
 | `last_key_value()` | `-> tuple[K, V] \| None` | Get largest key-value |
-| `keys()` | `-> Iterator[K]` | Iterate keys in sorted order |
-| `values()` | `-> Iterator[V]` | Iterate values in sorted order |
-| `iter()` | `-> Iterator[tuple[K, V]]` | Iterate pairs in sorted order |
-| `range_(start, end)` | `-> Iterator[tuple[K, V]]` | Range query |
+| `keys()` | `-> Iter[K]` | Iterate keys in sorted order |
+| `values()` | `-> Iter[V]` | Iterate values in sorted order |
+| `iter()` | `-> Iter[tuple[K, V]]` | Iterate pairs in sorted order |
+| `range_(start, end)` | `-> Iter[tuple[K, V]]` | Range query |
+| `drain()` | `-> Iter[tuple[K, V]]` | Remove and iterate in sorted order |
 | `to_dict()` | `-> dict[K, V]` | Convert to dict |
 
 ---
@@ -669,7 +675,8 @@ from oxide import BTreeSet
 | `contains(value)` | `-> bool` | Check membership |
 | `first()` | `-> T \| None` | Get smallest element |
 | `last()` | `-> T \| None` | Get largest element |
-| `range_(start, end)` | `-> Iterator[T]` | Range query |
+| `range_(start, end)` | `-> Iter[T]` | Range query |
+| `iter()` | `-> Iter[T]` | Iterate elements in sorted order |
 | `union(other)` | `-> BTreeSet[T]` | Set union |
 | `intersection(other)` | `-> BTreeSet[T]` | Set intersection |
 | `difference(other)` | `-> BTreeSet[T]` | Set difference |
@@ -700,7 +707,7 @@ from oxide import VecDeque
 | `contains(value)` | `-> bool` | Check membership |
 | `rotate_left(k)` | `-> None` | Rotate left by k |
 | `rotate_right(k)` | `-> None` | Rotate right by k |
-| `drain()` | `-> Drain[T]` | Remove and iterate |
+| `drain()` | `-> Iter[T]` | Remove and iterate |
 
 ---
 
@@ -722,7 +729,8 @@ from oxide import BinaryHeap
 | `peek_mut()` | `-> HeapPeekMut[T] \| None` | Mutable access to the top; heap re-orders on close |
 | `push_pop(value)` | `-> T` | Push then pop maximum |
 | `contains(value)` | `-> bool` | Check membership |
-| `drain()` | `-> Iterator[T]` | Remove and iterate in order |
+| `drain()` | `-> Iter[T]` | Remove and iterate in order |
+| `iter()` | `-> Iter[T]` | Iterate in heap order |
 | `to_list()` | `-> list[T]` | Get sorted list |
 
 ---
@@ -747,9 +755,9 @@ from oxide import LinkedList
 | `back()` | `-> T \| None` | Peek at back |
 | `contains(value)` | `-> bool` | Check membership |
 | `reverse()` | `-> None` | Reverse list |
-| `iter()` | `-> Iterator[T]` | Forward iteration |
-| `iter_rev()` | `-> Iterator[T]` | Reverse iteration |
-| `drain()` | `-> Drain[T]` | Remove and iterate |
+| `iter()` | `-> Iter[T]` | Forward iteration |
+| `iter_rev()` | `-> Iter[T]` | Reverse iteration |
+| `drain()` | `-> Iter[T]` | Remove and iterate |
 
 ---
 

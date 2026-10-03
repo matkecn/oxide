@@ -9,6 +9,7 @@ from __future__ import annotations
 from typing import Any, Callable, Generic, Iterable, Iterator, TypeVar, overload
 
 from ..core.option import Option, Some, None_
+from ..iter.iterator import Iter
 
 T = TypeVar("T")
 
@@ -789,30 +790,34 @@ class Vec(Generic[T]):
 
         return result
 
-    def iter(self) -> Iterator[T]:
+    def iter(self) -> Iter[T]:
         """Return an iterator over the elements.
 
         Returns:
-            Iterator[T]: An iterator yielding each element in order.
+            Iter[T]: An Iter yielding each element in order, so the adapter and
+                consumer methods are available.
 
         Examples:
             >>> list(Vec([1, 2, 3]).iter())
             [1, 2, 3]
+            >>> Vec([1, 2, 3]).iter().map(lambda n: n * 2).collect()
+            [2, 4, 6]
         """
-        return iter(self._data)
+        return Iter(self._data)
 
-    def enumerate(self) -> Iterator[tuple[int, T]]:
+    def enumerate(self) -> Iter[tuple[int, T]]:
         """Return an iterator of (index, value) pairs.
 
         Returns:
-            Iterator[tuple[int, T]]: An iterator yielding ``(index, value)``
-                pairs.
+            Iter[tuple[int, T]]: An Iter yielding ``(index, value)`` pairs.
 
         Examples:
             >>> list(Vec(['a', 'b']).enumerate())
             [(0, 'a'), (1, 'b')]
+            >>> Vec(['a', 'b']).enumerate().map(lambda p: p[1]).collect()
+            ['a', 'b']
         """
-        return enumerate(self._data)
+        return Iter(enumerate(self._data))
 
     def __iter__(self) -> Iterator[T]:
         """Return an iterator over the elements in order.
@@ -835,13 +840,13 @@ class Vec(Generic[T]):
         """
         return self._data.copy()
 
-    def into_iter(self) -> Iterator[T]:
+    def into_iter(self) -> Iter[T]:
         """Consume the Vec and return an iterator over its elements.
 
         The Vec is emptied and its capacity reset as a result.
 
         Returns:
-            Iterator[T]: An iterator over the elements before consumption.
+            Iter[T]: An Iter over the elements before consumption.
 
         Examples:
             >>> v = Vec([1, 2, 3])
@@ -849,13 +854,15 @@ class Vec(Generic[T]):
             [1, 2, 3]
             >>> v.is_empty()
             True
+            >>> Vec([1, 2, 3]).into_iter().sum()
+            6
         """
         data = self._data
 
         self._data = []
         self._capacity = 0
 
-        return iter(data)
+        return Iter(data)
 
     def __len__(self) -> int:
         """Return the number of elements in the Vec.

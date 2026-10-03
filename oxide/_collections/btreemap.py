@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from typing import Generic, Iterable, Iterator, TypeVar
 
+from ..iter.iterator import Iter
+
 K = TypeVar("K")
 V = TypeVar("V")
 
@@ -231,51 +233,56 @@ class BTreeMap(Generic[K, V]):
         """
         return len(self._data) == 0
 
-    def keys(self) -> Iterator[K]:
+    def keys(self) -> Iter[K]:
         """Return an iterator over the keys in sorted order.
 
         Returns:
-            Iterator[K]: An iterator yielding keys in ascending order.
+            Iter[K]: An Iter yielding keys in ascending order, so the adapter
+                and consumer methods are available.
 
         Examples:
             >>> list(BTreeMap([("b", 2), ("a", 1)]).keys())
             ['a', 'b']
+            >>> BTreeMap([("b", 2), ("a", 1)]).keys().collect()
+            ['a', 'b']
         """
-        return iter(sorted(self._data.keys()))
+        return Iter(sorted(self._data.keys()))
 
-    def values(self) -> Iterator[V]:
+    def values(self) -> Iter[V]:
         """Return an iterator over the values in key-sorted order.
 
-        Yields:
-            Iterator[V]: Each value, in ascending key order.
+        Returns:
+            Iter[V]: Each value, in ascending key order.
 
         Examples:
             >>> list(BTreeMap([("b", 2), ("a", 1)]).values())
             [1, 2]
+            >>> BTreeMap([("b", 2), ("a", 1)]).values().sum()
+            3
         """
-        for k in sorted(self._data.keys()):
-            yield self._data[k]
+        return Iter(self._data[k] for k in sorted(self._data))
 
-    def iter(self) -> Iterator[tuple[K, V]]:
+    def iter(self) -> Iter[tuple[K, V]]:
         """Return an iterator over (key, value) pairs in sorted key order.
 
-        Yields:
-            Iterator[tuple[K, V]]: Each pair, in ascending key order.
+        Returns:
+            Iter[tuple[K, V]]: Each pair, in ascending key order.
 
         Examples:
             >>> list(BTreeMap([("b", 2), ("a", 1)]).iter())
             [('a', 1), ('b', 2)]
+            >>> BTreeMap([("b", 2), ("a", 1)]).iter().map(lambda kv: kv[1]).sum()
+            3
         """
-        for k in sorted(self._data.keys()):
-            yield (k, self._data[k])
+        return Iter((k, self._data[k]) for k in sorted(self._data))
 
-    def drain(self) -> Iterator[tuple[K, V]]:
+    def drain(self) -> Iter[tuple[K, V]]:
         """Consume the map and return an iterator over its sorted (key, value) pairs.
 
         The map is emptied as a result.
 
         Returns:
-            Iterator[tuple[K, V]]: The sorted pairs before consumption.
+            Iter[tuple[K, V]]: The sorted pairs before consumption.
 
         Examples:
             >>> m = BTreeMap([("b", 2), ("a", 1)])
@@ -283,29 +290,33 @@ class BTreeMap(Generic[K, V]):
             [('a', 1), ('b', 2)]
             >>> m.is_empty()
             True
+            >>> BTreeMap([("b", 2), ("a", 1)]).drain().count()
+            2
         """
         items = sorted(self._data.items())
         self._data.clear()
-        return iter(items)
+        return Iter(items)
 
-    def range_(self, start: K, end: K) -> Iterator[tuple[K, V]]:
+    def range_(self, start: K, end: K) -> Iter[tuple[K, V]]:
         """Return an iterator over entries where start <= key < end.
 
         Args:
             start (K): The inclusive lower bound of the range.
             end (K): The exclusive upper bound of the range.
 
-        Yields:
-            Iterator[tuple[K, V]]: Each ``(key, value)`` pair with
+        Returns:
+            Iter[tuple[K, V]]: Each ``(key, value)`` pair with
                 ``start <= key < end``, in ascending key order.
 
         Examples:
             >>> list(BTreeMap([("a", 1), ("b", 2), ("c", 3)]).range_("a", "c"))
             [('a', 1), ('b', 2)]
+            >>> BTreeMap([("a", 1), ("b", 2)]).range_("a", "c").count()
+            2
         """
-        for k in sorted(self._data.keys()):
-            if start <= k < end:
-                yield (k, self._data[k])
+        return Iter(
+            (k, self._data[k]) for k in sorted(self._data) if start <= k < end
+        )
 
     def to_dict(self) -> dict[K, V]:
         """Return a new dictionary with entries sorted by key.

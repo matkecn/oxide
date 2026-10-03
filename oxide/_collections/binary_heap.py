@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from typing import Any, Generic, Iterable, Iterator, TypeVar
 
+from ..iter.iterator import Iter
+
 T = TypeVar("T")
 
 
@@ -315,34 +317,39 @@ class BinaryHeap(Generic[T]):
         """
         return value in self._data
 
-    def drain(self) -> Iterator[T]:
+    def drain(self) -> Iter[T]:
         """Consume the heap and return elements in sorted (heap) order.
 
         Returns elements from top to bottom. The heap is emptied as a result.
 
         Returns:
-            Iterator[T]: An iterator over the elements in heap order.
+            Iter[T]: An Iter over the elements in heap order.
 
         Examples:
             >>> h = BinaryHeap([1, 3, 2])
             >>> list(h.drain())
             [3, 2, 1]
+            >>> BinaryHeap([1, 3, 2]).drain().max()
+            3
         """
         items = sorted(self._data, reverse=not self._reverse)
         self._data.clear()
-        return iter(items)
+        return Iter(items)
 
-    def iter(self) -> Iterator[T]:
+    def iter(self) -> Iter[T]:
         """Return an iterator over elements in heap order.
 
         Returns:
-            Iterator[T]: An iterator yielding elements from top to bottom.
+            Iter[T]: An Iter yielding elements from top to bottom, so the
+                adapter and consumer methods are available.
 
         Examples:
             >>> list(BinaryHeap([1, 3, 2]).iter())
             [3, 2, 1]
+            >>> BinaryHeap([1, 3, 2]).iter().sum()
+            6
         """
-        return iter(sorted(self._data, reverse=not self._reverse))
+        return Iter(sorted(self._data, reverse=not self._reverse))
 
     def to_list(self) -> list[T]:
         """Return a list of elements in heap order.

@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Generic, Iterable, Iterator, TypeVar
 
-from .extra import Drain
+from ..iter.iterator import Iter
 
 T = TypeVar("T")
 
@@ -301,43 +301,53 @@ class LinkedList(Generic[T]):
             node = node.prev
         self._head, self._tail = self._tail, self._head
 
-    def iter(self) -> Iterator[T]:
+    def iter(self) -> Iter[T]:
         """Return an iterator over elements from front to back.
 
-        Yields:
-            Iterator[T]: Each element from front to back.
+        Returns:
+            Iter[T]: Each element from front to back.
 
         Examples:
             >>> list(LinkedList([1, 2]).iter())
             [1, 2]
+            >>> LinkedList([1, 2]).iter().count()
+            2
         """
-        node = self._head
-        while node:
-            yield node.value
-            node = node.next
+        def walk() -> Iterator[T]:
+            node = self._head
+            while node:
+                yield node.value
+                node = node.next
 
-    def iter_rev(self) -> Iterator[T]:
+        return Iter(walk())
+
+    def iter_rev(self) -> Iter[T]:
         """Return an iterator over elements from back to front.
 
-        Yields:
-            Iterator[T]: Each element from back to front.
+        Returns:
+            Iter[T]: Each element from back to front.
 
         Examples:
             >>> list(LinkedList([1, 2]).iter_rev())
             [2, 1]
+            >>> LinkedList([1, 2]).iter_rev().count()
+            2
         """
-        node = self._tail
-        while node:
-            yield node.value
-            node = node.prev
+        def walk() -> Iterator[T]:
+            node = self._tail
+            while node:
+                yield node.value
+                node = node.prev
 
-    def drain(self) -> Drain[T]:
-        """Consume the list and return a Drain iterator over its elements.
+        return Iter(walk())
+
+    def drain(self) -> Iter[T]:
+        """Consume the list and return an iterator over its elements.
 
         The list is emptied as a result.
 
         Returns:
-            Drain[T]: An iterator yielding the elements in order.
+            Iter[T]: An Iter yielding the elements in order.
 
         Examples:
             >>> ll = LinkedList([1, 2])
@@ -345,10 +355,12 @@ class LinkedList(Generic[T]):
             [1, 2]
             >>> ll.is_empty()
             True
+            >>> LinkedList([1, 2]).drain().sum()
+            3
         """
         items = list(self.iter())
         self.clear()
-        return Drain(items)
+        return Iter(items)
 
     def to_list(self) -> list[T]:
         """Return a new list containing all elements from front to back.

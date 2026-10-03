@@ -11,6 +11,7 @@ from __future__ import annotations
 from typing import Callable, Generic, Iterable, Iterator, TypeVar
 
 from ..core.option import Option, Some, None_
+from ..iter.iterator import Iter
 
 K = TypeVar("K")
 V = TypeVar("V")
@@ -642,73 +643,83 @@ class HashMap(Generic[K, V]):
         """
         self.insert(key, value)
 
-    def iter(self) -> Iterator[tuple[K, V]]:
+    def iter(self) -> Iter[tuple[K, V]]:
         """Return an iterator over (key, value) pairs.
 
         Returns:
-            Iterator[tuple[K, V]]: An iterator yielding the map's pairs.
+            Iter[tuple[K, V]]: An Iter yielding the map's pairs, so the adapter
+                and consumer methods are available.
 
         Examples:
             >>> dict(HashMap([("a", 1)]).iter())
             {'a': 1}
+            >>> HashMap([("a", 1), ("b", 2)]).iter().map(lambda kv: kv[0]).collect()
+            ['a', 'b']
         """
-        return iter(self._data.items())
+        return Iter(self._data.items())
 
-    def iter_mut(self) -> Iterator[MutableValue[K, V]]:
+    def iter_mut(self) -> Iter[MutableValue[K, V]]:
         """Return an iterator of mutable value references.
 
-        Yields:
-            Iterator[MutableValue[K, V]]: A mutable reference to each value.
+        Returns:
+            Iter[MutableValue[K, V]]: A mutable reference to each value.
 
         Examples:
             >>> m = HashMap({"a": 1, "b": 2})
             >>> for mv in m.iter_mut():
             ...     mv.set(mv.get() * 10)
+            >>> sorted(m.values())
+            [10, 20]
         """
-        for key in self._data:
-            yield MutableValue(self, key)
+        return Iter(MutableValue(self, key) for key in list(self._data))
 
-    def keys(self) -> Iterator[K]:
+    def keys(self) -> Iter[K]:
         """Return an iterator over the keys.
 
         Returns:
-            Iterator[K]: An iterator yielding each key.
+            Iter[K]: An Iter yielding each key, so the adapter and consumer
+                methods are available.
 
         Examples:
             >>> list(HashMap([("a", 1)]).keys())
             ['a']
+            >>> HashMap([("a", 1), ("b", 2)]).keys().collect()
+            ['a', 'b']
         """
-        return iter(self._data.keys())
+        return Iter(self._data.keys())
 
-    def values(self) -> Iterator[V]:
+    def values(self) -> Iter[V]:
         """Return an iterator over the values.
 
         Returns:
-            Iterator[V]: An iterator yielding each value.
+            Iter[V]: An Iter yielding each value, so the adapter and consumer
+                methods are available.
 
         Examples:
             >>> list(HashMap([("a", 1)]).values())
             [1]
+            >>> HashMap([("a", 1), ("b", 2)]).values().sum()
+            3
         """
-        return iter(self._data.values())
+        return Iter(self._data.values())
 
-    def values_mut(self) -> Iterator[MutableValue[K, V]]:
+    def values_mut(self) -> Iter[MutableValue[K, V]]:
         """Return an iterator of mutable value references.
 
         Alias of :meth:`iter_mut`.
 
-        Yields:
-            Iterator[MutableValue[K, V]]: A mutable reference to each value.
+        Returns:
+            Iter[MutableValue[K, V]]: A mutable reference to each value.
         """
         return self.iter_mut()
 
-    def into_iter(self) -> Iterator[tuple[K, V]]:
+    def into_iter(self) -> Iter[tuple[K, V]]:
         """Consume the map and return an iterator over its (key, value) pairs.
 
         The map is emptied and its capacity reset.
 
         Returns:
-            Iterator[tuple[K, V]]: An iterator over the pairs before consumption.
+            Iter[tuple[K, V]]: An Iter over the pairs before consumption.
 
         Examples:
             >>> m = HashMap([("a", 1)])
@@ -716,21 +727,23 @@ class HashMap(Generic[K, V]):
             [('a', 1)]
             >>> m.is_empty()
             True
+            >>> HashMap([("a", 1)]).into_iter().count()
+            1
         """
         data = self._data
 
         self._data = {}
         self._capacity = 0
 
-        return iter(data.items())
+        return Iter(data.items())
 
-    def drain(self) -> Iterator[tuple[K, V]]:
+    def drain(self) -> Iter[tuple[K, V]]:
         """Consume the map and return an iterator over its (key, value) pairs.
 
         The map is emptied and its capacity reset.
 
         Returns:
-            Iterator[tuple[K, V]]: An iterator over the pairs before consumption.
+            Iter[tuple[K, V]]: An Iter over the pairs before consumption.
 
         Examples:
             >>> m = HashMap([("a", 1)])
@@ -738,13 +751,15 @@ class HashMap(Generic[K, V]):
             [('a', 1)]
             >>> len(m)
             0
+            >>> HashMap([("a", 1)]).drain().count()
+            1
         """
         data = self._data
 
         self._data = {}
         self._capacity = 0
 
-        return iter(data.items())
+        return Iter(data.items())
 
     def is_disjoint(self, other: HashMap[K, V]) -> bool:
         """Return True if the two maps share no common keys.

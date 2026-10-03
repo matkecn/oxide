@@ -8,6 +8,8 @@ from __future__ import annotations
 
 from typing import Generic, Iterable, Iterator, TypeVar
 
+from ..iter.iterator import Iter
+
 T = TypeVar("T")
 
 
@@ -194,36 +196,39 @@ class BTreeSet(Generic[T]):
             return None
         return max(self._data)
 
-    def iter(self) -> Iterator[T]:
+    def iter(self) -> Iter[T]:
         """Return an iterator over the elements in sorted order.
 
         Returns:
-            Iterator[T]: An iterator yielding elements in ascending order.
+            Iter[T]: An Iter yielding elements in ascending order, so the
+                adapter and consumer methods are available.
 
         Examples:
             >>> list(BTreeSet([3, 1]).iter())
             [1, 3]
+            >>> BTreeSet([3, 1]).iter().max()
+            3
         """
-        return iter(sorted(self._data))
+        return Iter(sorted(self._data))
 
-    def range_(self, start: T, end: T) -> Iterator[T]:
+    def range_(self, start: T, end: T) -> Iter[T]:
         """Return an iterator over elements where start <= value < end.
 
         Args:
             start (T): The inclusive lower bound.
             end (T): The exclusive upper bound.
 
-        Yields:
-            Iterator[T]: Each element with ``start <= value < end``, in ascending
+        Returns:
+            Iter[T]: Each element with ``start <= value < end``, in ascending
                 order.
 
         Examples:
             >>> list(BTreeSet([1, 2, 3, 4]).range_(1, 3))
             [1, 2]
+            >>> BTreeSet([1, 2, 3, 4]).range_(1, 3).sum()
+            3
         """
-        for v in sorted(self._data):
-            if start <= v < end:
-                yield v
+        return Iter(v for v in sorted(self._data) if start <= v < end)
 
     def intersection(self, other: BTreeSet[T]) -> BTreeSet[T]:
         """Return a new set containing elements common to both sets.

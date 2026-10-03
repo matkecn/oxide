@@ -539,7 +539,7 @@ m.get("missing")              # None_
 m.remove("a")                 # Some(1)
 m.or_insert("hits", 0)        # existing value, or insert and return it
 m.insert("hits", 3)
-m.keys(), m.values()          # list views
+m.keys().collect(), m.values().collect()   # ['hits'], [3]
 m.len_common(HashMap.from_dict({"hits": 0}))   # 1
 
 counts = HashMap()
@@ -557,9 +557,9 @@ a.is_disjoint(b)                  # False
 
 # BTreeMap / BTreeSet — ordered, range-queryable
 tree = BTreeMap.from_dict({"b": 2, "a": 1, "c": 3})
-tree.keys()                        # ['a', 'b', 'c']
-list(tree.range_("a", "c"))        # [('a', 1), ('b', 2)]
-list(BTreeSet.from_iter([3, 1, 2]).range_(1, 3))   # [1, 2]
+tree.keys().collect()              # ['a', 'b', 'c']
+tree.range_("a", "c").collect()    # [('a', 1), ('b', 2)]
+BTreeSet.from_iter([3, 1, 2]).range_(1, 3).collect()   # [1, 2]
 
 # Double-ended, heap, linked list
 d = VecDeque([1, 2])
@@ -581,6 +581,19 @@ list(ll.iter_rev())                # [3, 2, 1]
 s = Slice.from_list([1, 2, 3])
 left, right = s.split_at(1)
 left.to_list(), right.to_list()    # ([1], [2, 3])
+```
+
+Every named iterator above — `iter`, `iter_mut`, `keys`, `values`, `drain`,
+`into_iter`, `range_`, `enumerate` — returns an `Iter`, so collection code and
+`Iter` code read the same way. `__iter__` stays a plain iterator, so `for`,
+`list()`, and `dict(...)` still work on collections directly:
+
+```python
+Vec([1, 2, 3]).iter().map(lambda n: n * 2).filter(lambda n: n > 4).collect()  # [6]
+HashMap({"a": 1, "b": 2}).keys().skip(1).collect()                            # ['b']
+heap.drain().max()                                                            # 9
+dict(m)                                     # maps still build dicts directly
+[1, 2, 3]                                   # plain lists never changed
 ```
 
 ---

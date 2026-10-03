@@ -7,6 +7,8 @@ from __future__ import annotations
 
 from typing import Generic, Iterable, Iterator, Sequence, TypeVar
 
+from ..iter.iterator import Iter
+
 T = TypeVar("T")
 
 
@@ -39,18 +41,21 @@ class Drain(Generic[T]):
         self._index = 0
 
     def __iter__(self) -> Iterator[T]:
-        """Yield the remaining elements and clear the source when exhausted.
+        """Return self as its own iterator.
 
-        Yields:
-            Iterator[T]: Each element of the source not yet yielded.
+        The source is cleared once this iterator is exhausted, whichever of
+        ``__iter__`` or ``__next__`` drives the iteration.
+
+        Returns:
+            Iterator[T]: This Drain.
         """
-        while self._index < len(self._source):
-            yield self._source[self._index]
-            self._index += 1
-        self._source.clear()
+        return self
 
     def __next__(self) -> T:
         """Return the next element, raising StopIteration when exhausted.
+
+        Reaching the end clears the source, so the drained collection is empty
+        once iteration finishes.
 
         Returns:
             T: The next element.
@@ -59,6 +64,7 @@ class Drain(Generic[T]):
             StopIteration: When all elements have been yielded.
         """
         if self._index >= len(self._source):
+            self._source.clear()
             raise StopIteration
         value = self._source[self._index]
         self._index += 1
@@ -285,18 +291,19 @@ class Slice(Generic[T]):
             Slice(self._data, self._start + mid, self._end),
         )
 
-    def iter(self) -> Iterator[T]:
+    def iter(self) -> Iter[T]:
         """Return an iterator over the elements in the slice.
 
-        Yields:
-            Iterator[T]: Each element within the window, in order.
+        Returns:
+            Iter[T]: Each element within the window, in order.
 
         Examples:
             >>> list(Slice([1, 2, 3]).iter())
             [1, 2, 3]
+            >>> Slice([1, 2, 3]).iter().sum()
+            6
         """
-        for i in range(self._start, self._end):
-            yield self._data[i]
+        return Iter(self._data[i] for i in range(self._start, self._end))
 
     def to_list(self) -> list[T]:
         """Return a new list containing the elements in the slice.

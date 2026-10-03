@@ -9,6 +9,7 @@ from __future__ import annotations
 from typing import Generic, Iterable, Iterator, TypeVar
 
 from ..core.option import Option, Some, None_
+from ..iter.iterator import Iter
 from .extra import Drain
 
 T = TypeVar("T")
@@ -329,11 +330,13 @@ class VecDeque(Generic[T]):
         """
         del self._data[length:]
 
-    def drain(self) -> Drain[T]:
-        """Consume the deque and return a Drain iterator over its elements.
+    def drain(self) -> Iter[T]:
+        """Consume the deque and return an iterator over its elements.
+
+        The deque is cleared once the returned iterator is exhausted.
 
         Returns:
-            Drain[T]: An iterator that yields the elements and clears the deque.
+            Iter[T]: An Iter that yields the elements and clears the deque.
 
         Examples:
             >>> d = VecDeque([1, 2])
@@ -341,20 +344,25 @@ class VecDeque(Generic[T]):
             [1, 2]
             >>> d.is_empty()
             True
+            >>> VecDeque([1, 2]).drain().sum()
+            3
         """
-        return Drain(self._data)
+        return Iter(Drain(self._data))
 
-    def iter(self) -> Iterator[T]:
+    def iter(self) -> Iter[T]:
         """Return an iterator over the elements from front to back.
 
         Returns:
-            Iterator[T]: An iterator yielding elements front to back.
+            Iter[T]: An Iter yielding elements front to back, so the adapter and
+                consumer methods are available.
 
         Examples:
             >>> list(VecDeque([1, 2]).iter())
             [1, 2]
+            >>> VecDeque([1, 2]).iter().count()
+            2
         """
-        return iter(self._data)
+        return Iter(self._data)
 
     def __len__(self) -> int:
         """Return the number of elements in the deque.

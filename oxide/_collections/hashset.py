@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from typing import Generic, Iterable, Iterator, TypeVar
 
+from ..iter.iterator import Iter
+
 T = TypeVar("T")
 
 
@@ -215,25 +217,28 @@ class HashSet(Generic[T]):
         """
         self._data.clear()
 
-    def iter(self) -> Iterator[T]:
+    def iter(self) -> Iter[T]:
         """Return an iterator over the elements.
 
         Returns:
-            Iterator[T]: An iterator yielding each element.
+            Iter[T]: An Iter yielding each element, so the adapter and consumer
+                methods are available.
 
         Examples:
             >>> sorted(HashSet([3, 1]).iter())
             [1, 3]
+            >>> HashSet([3, 1]).iter().count()
+            2
         """
-        return iter(self._data)
+        return Iter(self._data)
 
-    def drain(self) -> Iterator[T]:
+    def drain(self) -> Iter[T]:
         """Consume the set and return an iterator over its elements.
 
         The set is emptied as a result.
 
         Returns:
-            Iterator[T]: An iterator over the elements before consumption.
+            Iter[T]: An Iter over the elements before consumption.
 
         Examples:
             >>> s = HashSet([1, 2])
@@ -241,10 +246,12 @@ class HashSet(Generic[T]):
             [1, 2]
             >>> s.is_empty()
             True
+            >>> HashSet([1, 2]).drain().max()
+            2
         """
         items = list(self._data)
         self._data.clear()
-        return iter(items)
+        return Iter(items)
 
     def extend(self, values: Iterable[T]) -> None:
         """Add all values from an iterable to the set.
@@ -391,13 +398,13 @@ class HashSet(Generic[T]):
         """
         return self._data.copy()
 
-    def into_iter(self) -> Iterator[T]:
+    def into_iter(self) -> Iter[T]:
         """Consume the set and return an iterator over its elements.
 
         The set is emptied as a result.
 
         Returns:
-            Iterator[T]: An iterator over the elements before consumption.
+            Iter[T]: An Iter over the elements before consumption.
 
         Examples:
             >>> s = HashSet([1, 2])
@@ -405,10 +412,12 @@ class HashSet(Generic[T]):
             [1, 2]
             >>> s.is_empty()
             True
+            >>> HashSet([1, 2]).into_iter().max()
+            2
         """
         items = list(self._data)
         self._data.clear()
-        return iter(items)
+        return Iter(items)
 
     def __len__(self) -> int:
         """Return the number of elements in the set.
