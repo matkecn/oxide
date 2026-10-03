@@ -1427,6 +1427,477 @@ class BitVec:
         return f"BitVec({self._len} bits)"
 
 
+class _FlagsMeta(type):
+    """Metaclass that turns declared integers into flag values.
+
+    Subclass ``BitFlags`` and declare each flag as an uppercase integer. At
+    class creation those integers are replaced by instances of the class, so
+    ``READ | WRITE`` yields a flags value rather than a bare int, and every
+    flag method works on every flag.
+    """
+
+    def __new__(mcs, name: str, bases: Any, namespace: dict[str, Any], **kwargs: Any) -> Any:
+        if name != "BitFlags" and "__slots__" not in namespace:
+            namespace["__slots__"] = ()
+        cls = super().__new__(mcs, name, bases, namespace, **kwargs)
+
+        declared: dict[str, int] = {
+            key: value
+            for key, value in namespace.items()
+            if isinstance(value, int) and not key.startswith("_") and key.isupper()
+        }
+        cls._flags = declared  # type: ignore[attr-defined]
+        for key, value in declared.items():
+            setattr(cls, key, cls(value))  # type: ignore[attr-defined]
+        return cls
+
+
+def _flag_union(values: Iterable[int]) -> int:
+    """OR every value together, returning 0 for no values."""
+    out = 0
+    for value in values:
+        out |= value
+    return out
+
+
+class BitFlags(metaclass=_FlagsMeta):
+    """A set of named bit flags, as Rust's ``bitflags`` crate provides.
+
+    Declare flags as uppercase integers on a subclass; each declaration
+    becomes a value of that subclass, so flag arithmetic and every flag
+    method use the same type.
+
+    Examples:
+        >>> from oxide import BitFlags
+        >>> class Perms(BitFlags):
+        ...     READ = 0b001
+        ...     WRITE = 0b010
+        ...     EXEC = 0b100
+        >>> Perms.READ.bits()
+        1
+        >>> (Perms.READ | Perms.WRITE).contains(Perms.READ)
+        True
+        >>> Perms.all().iter()
+        ['READ', 'WRITE', 'EXEC']
+        >>> Perms.READ | Perms.WRITE
+        Perms(READ | WRITE)
+    """
+
+    __slots__ = ("_bits",)
+
+    _flags: dict[str, int] = {}
+
+    def __init__(self, bits: int = 0) -> None:
+        """Create a flags value from a raw bitmask.
+
+        Args:
+            bits: The initial bit pattern.
+        """
+        self._bits = int(bits)
+
+    @staticmethod
+    def _to_bits(value: Any) -> int:
+        """Coerce a flags value or an int to a raw mask."""
+        if isinstance(value, BitFlags):
+            return value._bits
+        return int(value)
+
+    @classmethod
+    def declared(cls) -> dict[str, int]:
+        """Return the declared flag names mapped to their bit patterns.
+
+        Returns:
+            dict[str, int]: Flag name to bit value, in declaration order.
+
+        Examples:
+            >>> class Perms(BitFlags):
+            ...     READ = 1
+            ...     WRITE = 2
+            >>> Perms.declared()
+            {'READ': 1, 'WRITE': 2}
+        """
+        return dict(cls._flags)
+
+    @classmethod
+    def all(cls) -> BitFlags:
+        """Return a value with every declared flag set.
+
+        Returns:
+            BitFlags: The union of all declared flags.
+
+        Examples:
+            >>> class Perms(BitFlags):
+            ...     READ = 1
+            ...     WRITE = 2
+            >>> Perms.all().bits()
+            3
+        """
+        return cls(_flag_union(cls._flags.values()))
+
+    @classmethod
+    def from_bits(cls, bits: int) -> BitFlags:
+        """Create a value from raw bits, retaining undeclared bits too.
+
+        Args:
+            bits (int): The raw pattern.
+
+        Returns:
+            BitFlags: The corresponding value.
+
+        Examples:
+            >>> class Perms(BitFlags):
+            ...     READ = 1
+            ...     WRITE = 2
+            >>> Perms.from_bits(0b101).bits()
+            5
+        """
+        return cls(bits)
+
+    # --- inspection -------------------------------------------------------
+
+    def bits(self) -> int:
+        """Return the raw bitmask.
+
+        Returns:
+            int: The integer backing this value.
+
+        Examples:
+            >>> class Perms(BitFlags):
+            ...     READ = 1
+            ...     WRITE = 2
+            >>> (Perms.READ | Perms.WRITE).bits()
+            3
+        """
+        return self._bits
+
+    def contains(self, other: Any) -> bool:
+        """Return True if every bit of ``other`` is set here.
+
+        Args:
+            other: Another flags value or an int.
+
+        Returns:
+            bool: True if this value contains all of ``other``'s bits.
+
+        Examples:
+            >>> class Perms(BitFlags):
+            ...     READ = 1
+            ...     WRITE = 2
+            >>> (Perms.READ | Perms.WRITE).contains(Perms.READ)
+            True
+            >>> Perms.READ.contains(Perms.WRITE)
+            False
+        """
+        other_bits = self._to_bits(other)
+        return (self._bits & other_bits) == other_bits
+
+    def intersects(self, other: Any) -> bool:
+        """Return True if any bit of ``other`` is set here.
+
+        Args:
+            other: Another flags value or an int.
+
+        Returns:
+            bool: True if the two values share at least one bit.
+
+        Examples:
+            >>> class Perms(BitFlags):
+            ...     READ = 1
+            ...     WRITE = 2
+            >>> Perms.READ.intersects(Perms.WRITE)
+            False
+            >>> (Perms.READ | Perms.WRITE).intersects(Perms.WRITE)
+            True
+        """
+        return (self._bits & self._to_bits(other)) != 0
+
+    def is_empty(self) -> bool:
+        """Return True if no bits are set.
+
+        Returns:
+            bool: True if the value is zero.
+
+        Examples:
+            >>> class Perms(BitFlags):
+            ...     READ = 1
+            >>> Perms(0).is_empty()
+            True
+        """
+        return self._bits == 0
+
+    def is_all(self) -> bool:
+        """Return True if every declared flag is set.
+
+        Returns:
+            bool: True if this equals ``type(self).all()``.
+
+        Examples:
+            >>> class Perms(BitFlags):
+            ...     READ = 1
+            ...     WRITE = 2
+            >>> Perms.all().is_all()
+            True
+            >>> Perms.READ.is_all()
+            False
+        """
+        return self._bits == _flag_union(type(self)._flags.values())
+
+    def count_ones(self) -> int:
+        """Return the number of set bits.
+
+        Returns:
+            int: How many bits are on.
+
+        Examples:
+            >>> class Perms(BitFlags):
+            ...     READ = 1
+            ...     WRITE = 2
+            ...     EXEC = 4
+            >>> (Perms.READ | Perms.EXEC).count_ones()
+            2
+        """
+        return bin(self._bits).count("1")
+
+    # --- mutation ---------------------------------------------------------
+
+    def insert(self, other: Any) -> None:
+        """Set the bits of ``other`` in place.
+
+        Args:
+            other: The flags value or int to add.
+
+        Examples:
+            >>> class Perms(BitFlags):
+            ...     READ = 1
+            ...     WRITE = 2
+            >>> p = Perms.READ
+            >>> p.insert(Perms.WRITE)
+            >>> p.bits()
+            3
+        """
+        self._bits |= self._to_bits(other)
+
+    def remove(self, other: Any) -> None:
+        """Clear the bits of ``other`` in place.
+
+        Args:
+            other: The flags value or int to clear.
+
+        Examples:
+            >>> class Perms(BitFlags):
+            ...     READ = 1
+            ...     WRITE = 2
+            >>> p = Perms.READ | Perms.WRITE
+            >>> p.remove(Perms.WRITE)
+            >>> p.bits()
+            1
+        """
+        self._bits &= ~self._to_bits(other)
+
+    def toggle(self, other: Any) -> None:
+        """Flip the bits of ``other`` in place.
+
+        Args:
+            other: The flags value or int to flip.
+
+        Examples:
+            >>> class Perms(BitFlags):
+            ...     READ = 1
+            ...     WRITE = 2
+            >>> p = Perms.READ
+            >>> p.toggle(Perms.READ | Perms.WRITE)
+            >>> p.bits()
+            2
+        """
+        self._bits ^= self._to_bits(other)
+
+    def set(self, other: Any, on: bool) -> None:
+        """Set or clear the bits of ``other`` in place.
+
+        Args:
+            other: The flags value or int to change.
+            on: True to set the bits, False to clear them.
+
+        Examples:
+            >>> class Perms(BitFlags):
+            ...     READ = 1
+            ...     WRITE = 2
+            >>> p = Perms(0)
+            >>> p.set(Perms.WRITE, True)
+            >>> p.bits()
+            2
+            >>> p.set(Perms.WRITE, False)
+            >>> p.bits()
+            0
+        """
+        if on:
+            self._bits |= self._to_bits(other)
+        else:
+            self._bits &= ~self._to_bits(other)
+
+    # --- pure -------------------------------------------------------------
+
+    def union(self, other: Any) -> BitFlags:
+        """Return a value with the bits of both.
+
+        Args:
+            other: The flags value or int to combine with.
+
+        Returns:
+            BitFlags: The new value.
+
+        Examples:
+            >>> class Perms(BitFlags):
+            ...     READ = 1
+            ...     WRITE = 2
+            >>> Perms.READ.union(Perms.WRITE).bits()
+            3
+        """
+        return type(self)(self._bits | self._to_bits(other))
+
+    def intersection(self, other: Any) -> BitFlags:
+        """Return a value with only the bits both share.
+
+        Args:
+            other: The flags value or int to intersect with.
+
+        Returns:
+            BitFlags: The new value.
+
+        Examples:
+            >>> class Perms(BitFlags):
+            ...     READ = 1
+            ...     WRITE = 2
+            >>> (Perms.READ | Perms.WRITE).intersection(Perms.READ).bits()
+            1
+        """
+        return type(self)(self._bits & self._to_bits(other))
+
+    def difference(self, other: Any) -> BitFlags:
+        """Return a value with ``other``'s bits cleared.
+
+        Args:
+            other: The flags value or int to subtract.
+
+        Returns:
+            BitFlags: The new value.
+
+        Examples:
+            >>> class Perms(BitFlags):
+            ...     READ = 1
+            ...     WRITE = 2
+            >>> (Perms.READ | Perms.WRITE).difference(Perms.WRITE).bits()
+            1
+        """
+        return type(self)(self._bits & ~self._to_bits(other))
+
+    def symmetric_difference(self, other: Any) -> BitFlags:
+        """Return a value with bits set in exactly one side.
+
+        Args:
+            other: The flags value or int to compare with.
+
+        Returns:
+            BitFlags: The new value.
+
+        Examples:
+            >>> class Perms(BitFlags):
+            ...     READ = 1
+            ...     WRITE = 2
+            >>> Perms.READ.symmetric_difference(Perms.WRITE).bits()
+            3
+        """
+        return type(self)(self._bits ^ self._to_bits(other))
+
+    # --- iteration --------------------------------------------------------
+
+    def iter(self) -> list[str]:
+        """Return the names of the flags that are set.
+
+        Returns:
+            list[str]: Names in declaration order. Bits with no matching
+                declaration are shown in binary form.
+
+        Examples:
+            >>> class Perms(BitFlags):
+            ...     READ = 0b001
+            ...     WRITE = 0b010
+            >>> (Perms.READ | Perms.WRITE).iter()
+            ['READ', 'WRITE']
+            >>> Perms(0).iter()
+            []
+        """
+        declared = type(self)._flags
+        named = [name for name, value in declared.items() if value and (self._bits & value) == value]
+        remaining = self._bits
+        for value in declared.values():
+            remaining &= ~value
+        if remaining:
+            named.append(bin(remaining))
+        return named
+
+    # --- operators --------------------------------------------------------
+
+    def __or__(self, other: Any) -> BitFlags:
+        return type(self)(self._bits | self._to_bits(other))
+
+    def __and__(self, other: Any) -> BitFlags:
+        return type(self)(self._bits & self._to_bits(other))
+
+    def __xor__(self, other: Any) -> BitFlags:
+        return type(self)(self._bits ^ self._to_bits(other))
+
+    def __invert__(self) -> BitFlags:
+        """Return the complement, limited to the declared flag bits."""
+        return type(self)(~self._bits & _flag_union(type(self)._flags.values()))
+
+    def __ior__(self, other: Any) -> BitFlags:
+        self.insert(other)
+        return self
+
+    def __iand__(self, other: Any) -> BitFlags:
+        self._bits &= self._to_bits(other)
+        return self
+
+    def __ixor__(self, other: Any) -> BitFlags:
+        self.toggle(other)
+        return self
+
+    def __contains__(self, other: Any) -> bool:
+        return self.contains(other)
+
+    def __bool__(self) -> bool:
+        return self._bits != 0
+
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, BitFlags):
+            return self._bits == other._bits
+        if isinstance(other, int):
+            return self._bits == other
+        return NotImplemented
+
+    def __ne__(self, other: object) -> bool:
+        result = self.__eq__(other)
+        if result is NotImplemented:
+            return result
+        return not result
+
+    def __hash__(self) -> int:
+        return hash((type(self).__name__, self._bits))
+
+    def __iter__(self) -> Iterator[str]:
+        return iter(self.iter())
+
+    def __repr__(self) -> str:
+        names = self.iter()
+        if not names:
+            return f"{type(self).__name__}()"
+        return f"{type(self).__name__}({' | '.join(names)})"
+
+    def __str__(self) -> str:
+        return self.__repr__()
+
+
 @dataclass(frozen=True)
 class CreateMeta:
     """Metadata describing a library's creation and configuration.
