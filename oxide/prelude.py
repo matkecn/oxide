@@ -87,7 +87,7 @@ from .derive import (
 )
 
 from .decor import (
-    masterclass, MasterMethod, is_master,
+    masterclass, MasterMethod, is_master, mastermethod,
     TestResult, test, bench, tests, run_tests,
 )
 
