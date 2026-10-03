@@ -81,6 +81,7 @@ Complete API documentation for all classes, functions, and types in the oxide li
 - [Miscellaneous](#miscellaneous)
 - [Regular Expressions](#regular-expressions)
 - [Validation & Sanitization](#validation--sanitization)
+- [Prelude](#prelude)
 - [Logging](#logging)
   - [Log levels](#log-levels)
   - [Loggers and sinks](#loggers-and-sinks)
@@ -88,8 +89,12 @@ Complete API documentation for all classes, functions, and types in the oxide li
 - [Derive and Attribute Macros](#derive-and-attribute-macros)
   - [Supported derives](#supported-derives)
   - [Lints](#lints)
+- [Decorators](#decorators)
+  - [One namespace for Rust attributes](#one-namespace-for-rust-attributes)
+  - [Item attributes](#item-attributes)
+  - [Test attributes](#test-attributes)
+  - [masterclass](#masterclass)
 - [Help](#help)
-- [Prelude](#prelude)
 
 ---
 
@@ -2497,7 +2502,7 @@ Import common types with a single import:
 from oxide.prelude import *
 ```
 
-Includes: `Option`, `Some`, `None_`, `Result`, `Ok`, `Err`, `Enum`, `match`, `_`, `Vec`, `HashMap`, `HashSet`, `Box`, `Rc`, `Arc`, `Cell`, `RefCell`, `OnceCell`, `Lazy`, `Cow`, `Mutex`, `RwLock`, `Channel`, `Duration`, `Instant`, `SystemTime`, `Path`, `File`, `TcpStream`, `TcpListener`, `UdpSocket`, `Command`, `Child`, `Future`, `Poll`, `Stream`, `Regex`, `Filter`, `Logger`, `derive_`, `Help`, and more.
+Includes: `Option`, `Some`, `None_`, `Result`, `Ok`, `Err`, `Enum`, `match`, `_`, `Vec`, `HashMap`, `HashSet`, `Box`, `Rc`, `Arc`, `Cell`, `RefCell`, `OnceCell`, `Lazy`, `Cow`, `Mutex`, `RwLock`, `Channel`, `Duration`, `Instant`, `SystemTime`, `Path`, `File`, `TcpStream`, `TcpListener`, `UdpSocket`, `Command`, `Child`, `Future`, `Poll`, `Stream`, `Regex`, `Filter`, `Logger`, `derive_`, `masterclass`, `run_tests`, `Help`, and more.
 
 ---
 
@@ -2656,6 +2661,166 @@ it for one use.
 `cfg(feature, *, not_feature=None, test=None)` skips a definition unless the
 named features are enabled, matching `#[cfg(feature = "...")]`. Features are
 turned on with `enable_feature("nightly")`.
+
+---
+
+## Decorators
+
+### One namespace for Rust attributes
+
+Rust spreads its attributes across the language, the standard library, and a pile
+of proc-macro crates, so knowing what `#[inline(always)]` does means knowing
+which crate it came from. `oxide.decor` gathers them behind one import. It is a
+facade, not a reimplementation: `oxide.decor.derive is oxide.derive.derive`.
+
+```python
+from oxide.decor import derive, inline, cfg, warn, test, run_tests, masterclass
+```
+
+Inside this namespace the plain Rust spellings work, because nothing here
+collides with a builtin. At the top level of the `oxide` package the colliding
+names are disambiguated instead — `derive_`, `cfg_`, `lint_warn` — so
+`oxide.derive` keeps naming the subpackage.
+
+`oxide.decor` re-exports everything from `oxide.derive` (see
+[Derive and Attribute Macros](#derive-and-attribute-macros)) and adds the item
+attributes, the test harness, and `masterclass`.
+
+### Item attributes
+
+`#[no_mangle]`, `#[used]`, `#[cold]`, and `#[naked]` steer code generation, which
+CPython offers no equivalent for, so they are recorded as metadata and read back
+through `attributes_of` — the same treatment `inline` already gets.
+
+```python
+from oxide.decor import no_mangle, repr_, repr_kinds_of, attributes_of
+
+@no_mangle
+def entry_point():
+    return 1
+
+attributes_of(entry_point)
+# {'no_mangle': {'enabled': True}}
+
+@repr_("transparent")
+class Handle:
+    __slots__ = ("raw",)
+
+repr_kinds_of(Handle)
+# ('transparent',)
+```
+
+`main` is the exception with real behaviour: it runs an async function the way
+`#[tokio::main]` does.
+
+```python
+import asyncio
+from oxide.decor import main
+
+@main
+async def serve():
+    await asyncio.sleep(0)
+    return "done"
+
+serve()
+# 'done'
+```
+
+`track_caller` and `caller_location` together reproduce Rust's
+`Location::caller()`: a tracked function that reports `caller_location()` names
+the code that called it, not its own line.
+
+### Test attributes
+
+`#[test]`, `#[bench]`, `#[ignore]`, `#[should_panic]`, and `#[serial]` are emulated
+for real. Marked functions are collected into registries and executed by
+`run_tests()`, which honours each attribute.
+
+```python
+from oxide.decor import ignore, run_tests, should_panic, test
+
+@test
+def test_ok():
+    assert 1 + 1 == 2
+
+@test
+@should_panic(ValueError)
+def test_expected_failure():
+    raise ValueError("yes")
+
+@test
+@ignore("not ready")
+def test_skipped():
+    assert False
+
+result = run_tests()
+result.passed, result.failed, result.ignored, result.errors
+# (('test_ok', 'test_expected_failure'), (), ('test_skipped',), ())
+```
+
+Tests are collected per module the way Rust collects them per crate: `test` and
+`bench` register the function, and `tests()` and `benches()` filter the registry
+down to the module that asks, so one module's run never picks up another's.
+
+```python
+from oxide.decor import test, tests
+
+@test
+def test_in_this_module():
+    return None
+
+tests()
+# (<function test_in_this_module at ...>,)
+```
+
+Pass `module=` to target another module's suite, which is what a driver or a test
+runner wants: `run_tests(module=mod_a)`.
+
+`run_tests(include_ignored=True)` runs the ignored ones too and reports them as
+ordinary tests.
+
+### masterclass
+
+`masterclass` has no Rust spelling. It combines `classmethod` and `staticmethod`:
+the class is always bound, and the instance is bound when one is reachable. A
+method written as `(cls, self, ...)` works when called on the class *and* on an
+instance.
+
+```python
+from oxide.decor import masterclass
+
+class Config:
+    def __init__(self, value):
+        self.value = value
+
+    @masterclass
+    def describe(cls, self):
+        if self is None:
+            return f"{cls.__name__} describes itself"
+        return f"{cls.__name__} holds {self.value!r}"
+
+Config(7).describe()
+# 'Config holds 7'
+
+Config.describe()
+# 'Config describes itself'
+```
+
+Calling through the class passes `self=None`; calling through an instance passes
+that instance. `MasterMethod` is the descriptor itself, and `is_master` reports
+whether a value is one.
+
+```python
+from oxide.decor import is_master
+
+class Builder:
+    @masterclass
+    def size(cls, self):
+        return 0
+
+is_master(Builder.__dict__["size"])
+# True
+```
 
 ---
 

@@ -49,6 +49,7 @@ PUBLIC_PACKAGES: tuple[str, ...] = (
     "regex",
     "filter",
     "derive",
+    "decor",
     "logging",
     "help",
 )

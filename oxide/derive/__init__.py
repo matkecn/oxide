@@ -65,6 +65,7 @@ from .attributes import (
     lint_warn,
     must_use,
     non_exhaustive,
+    reset_features,
     warn,
 )
 from .derive import (
@@ -161,6 +162,7 @@ __all__ = [
     "lint_levels",
     "lint_scope",
     "normalize_level",
+    "reset_features",
     "reset_lints",
     "resolve",
     "set_lint_level",

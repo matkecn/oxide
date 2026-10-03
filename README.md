@@ -97,6 +97,10 @@ print(parse_port("http"))         # Err(error=FilterError('int', 'an integer'))
   - [Supported derives](#supported-derives)
   - [Attribute macros](#attribute-macros)
   - [Lints](#lints)
+- [Decorators](#decorators)
+  - [Item attributes](#item-attributes)
+  - [Test attributes](#test-attributes)
+  - [masterclass](#masterclass)
 - [Help](#help)
 - [Real-world recipes](#real-world-recipes)
 - [Performance notes](#performance-notes)
@@ -216,7 +220,7 @@ print(Filter.validate("a@b.com", Filter.EMAIL))
 ## Import styles and naming
 
 ```python
-# Everything re-exported at the top level (264 names)
+# Everything re-exported at the top level (298 names)
 from oxide import *
 from oxide import Option, Vec, HashMap, Mutex, Path, Regex, Filter
 
@@ -1582,6 +1586,117 @@ downstream. `warn` emits a `LintWarning`; `deny` and `forbid` raise `LintError`.
 
 ---
 
+## Decorators
+
+`oxide.decor` gathers every Rust decorator into one namespace, because Rust
+spreads its attributes across the language, the standard library, and a pile of
+proc-macro crates. It is a facade, not a reimplementation:
+`oxide.decor.derive is oxide.derive.derive`.
+
+```python
+from oxide.decor import derive, inline, cfg, warn, test, run_tests, masterclass
+```
+
+It re-exports all of `oxide.derive` — the type-level attributes from
+[Derive and lints](#derive-and-lints) — and adds the item attributes, the test
+harness, and `masterclass`. Inside this namespace the plain Rust spellings work,
+since nothing here collides with a builtin. At the top level of `oxide` the
+colliding names are disambiguated (`derive_`, `cfg_`, `lint_warn`) so
+`oxide.derive` keeps naming the subpackage.
+
+### Item attributes
+
+`#[no_mangle]`, `#[used]`, `#[cold]`, and `#[naked]` steer code generation, which
+CPython offers no equivalent for, so they are recorded as metadata and read back
+through `attributes_of` — the same treatment `inline` already gets.
+
+```python
+from oxide.decor import no_mangle, attributes_of
+
+@no_mangle
+def entry_point():
+    return 1
+
+attributes_of(entry_point)     # {'no_mangle': {'enabled': True}}
+```
+
+`main` is the exception with real behaviour: it runs an async function the way
+`#[tokio::main]` does.
+
+```python
+import asyncio
+from oxide.decor import main
+
+@main
+async def serve():
+    await asyncio.sleep(0)
+    return "done"
+
+serve()                        # 'done'
+```
+
+### Test attributes
+
+`#[test]`, `#[bench]`, `#[ignore]`, `#[should_panic]`, and `#[serial]` are emulated
+for real: marked functions are collected into registries and executed by
+`run_tests()`, which honours each attribute.
+
+```python
+from oxide.decor import ignore, run_tests, should_panic, test
+
+@test
+def test_ok():
+    assert 1 + 1 == 2
+
+@test
+@should_panic(ValueError)
+def test_expected_failure():
+    raise ValueError("yes")
+
+@test
+@ignore("not ready")
+def test_skipped():
+    assert False
+
+result = run_tests()
+result.passed, result.ignored
+# (('test_ok', 'test_expected_failure'), ('test_skipped',))
+```
+
+Tests are collected per module, the way Rust collects them per crate, so one
+module's run never picks up another's. `run_tests(include_ignored=True)` runs the
+ignored ones too, and `tests(module)`, `benches(module)`, and
+`run_tests(module=module)` target another module's suite from a driver.
+
+### masterclass
+
+`masterclass` has no Rust spelling. It combines `classmethod` and `staticmethod`:
+the class is always bound, and the instance is bound when one is reachable. A
+method written as `(cls, self, ...)` works called on the class *and* on an
+instance.
+
+```python
+from oxide.decor import masterclass
+
+class Config:
+    def __init__(self, value):
+        self.value = value
+
+    @masterclass
+    def describe(cls, self):
+        if self is None:
+            return f"{cls.__name__} describes itself"
+        return f"{cls.__name__} holds {self.value!r}"
+
+Config(7).describe()           # 'Config holds 7'
+Config.describe()              # 'Config describes itself'
+```
+
+Calling through the class passes `self=None`. `MasterMethod` is the descriptor
+itself, and `is_master` reports whether a value is one.
+
+---
+
 ## Help
 
 `oxide.help` indexes the library by importing it and reading `__all__`, the
@@ -1928,6 +2043,8 @@ of the README documents only behaviour that is verified to work.
 | `IGNORECASE` folding | reverse folding is precomputed for U+0000–U+2FFF; supplementary-plane case pairs are not folded backwards. |
 | `_io` read protocol | `Read.read(buf)` fills a caller-supplied buffer, Rust-style. There is no `read(n)` convenience form, so `Cursor(b"x").read(5)` raises `TypeError`; pass a `bytearray` instead. |
 | `VecDeque.get`, `HashSet.remove` | return plain `None` rather than an `Option`, unlike `Vec.get` and `HashMap.get`. `HashSet.take` is the `Option`-free counterpart that reports whether the value was present. |
+| `#[no_mangle]`, `#[used]`, `#[cold]`, `#[naked]` | record metadata only — CPython has no equivalent of Rust's codegen controls, so read them back with `attributes_of`. `repr_`, `track_caller`, `main`, `test`, and `ignore`/`should_panic` do have real behaviour. |
+| `#[bench]`, `#[serial]` | `benches()` collects benchmarks but there is no `run_benches()` timing loop, and `run_tests()` is sequential already, so `#[serial]` is recorded but never contended. |
 | Test suite | the docstring examples are the test suite and run under `pytest --doctest-modules`; there is no separate `tests/` directory and no CI yet. |
 
 ---
@@ -1937,7 +2054,7 @@ of the README documents only behaviour that is verified to work.
 ```
 .
 ├── oxide/                       # the package
-│   ├── __init__.py              # the full public API (264 names)
+│   ├── __init__.py              # the full public API (298 names)
 │   ├── prelude.py               # curated imports
 │   ├── py.typed                 # PEP 561 marker
 │   ├── core/                    # option, result, enum, traits, convert, error
@@ -1957,6 +2074,7 @@ of the README documents only behaviour that is verified to work.
 │   ├── filter/                  # filter, validators, sanitizers
 │   ├── logging/                 # level, logger, console
 │   ├── derive/                  # registry, attributes, derive, functions
+│   ├── decor/                    # items, masterclass — every Rust decorator
 │   └── help/                    # catalog, render, help
 ├── assets/                      # logo and icon artwork
 ├── docs/API.md                  # complete API reference

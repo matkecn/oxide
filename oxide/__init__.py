@@ -5,12 +5,13 @@ including ``Option``/``Result``, iterators, collections, smart pointers,
 synchronization primitives, time, I/O, filesystem, networking, process, and
 async facilities.
 
-Five higher-level packages build on that core and are re-exported here too:
+Six higher-level packages build on that core and are re-exported here too:
 :mod:`oxide.regex`, a linear-time regular expression engine, :mod:`oxide.filter`,
 a PHP ``filter_var()``-style validator, :mod:`oxide.logging` for console output
 and structured loggers, :mod:`oxide.derive` for Rust-style ``#[derive]`` and lint
-attributes, and :mod:`oxide.help`, which documents the library by introspecting
-it. All are also reachable as attributes, so ``oxide.regex``, ``oxide.logging``,
+attributes, :mod:`oxide.decor`, which gathers every Rust decorator into one
+namespace, and :mod:`oxide.help`, which documents the library by introspecting
+it. All are also reachable as attributes, so ``oxide.regex``, ``oxide.decor``,
 and friends work after a plain ``import oxide``.
 
 The package re-exports the full public API for convenient import, e.g.
@@ -24,8 +25,10 @@ and the regex match object is ``RegexMatch``, leaving ``Match`` to the enum
 ``lint_deny``, and ``lint_forbid``, and the logging helpers are prefixed ``log_``,
 so ``warn`` and ``debug`` stay with :mod:`oxide.core.traits` and the ``cfg``
 macro with :mod:`oxide.macros`. The derive decorator is exported as ``derive_``
-rather than ``derive``, so ``oxide.derive`` keeps naming the subpackage. The regex functions stay under
-``oxide.regex`` to avoid shadowing ``oxide.match``.
+rather than ``derive``, so ``oxide.derive`` keeps naming the subpackage. The
+``cfg`` decorator from :mod:`oxide.decor` is exported as ``cfg_`` for the same
+reason. The regex functions stay under ``oxide.regex`` to avoid shadowing
+``oxide.match``.
 
 Example:
     >>> from oxide import Some, Vec, Filter, Help
@@ -153,6 +156,17 @@ from .derive import (
     set_lint_level, get_lint_level, reset_lints,
 )
 
+from .decor import (
+    masterclass, MasterMethod, is_master,
+    cfg as cfg_,
+    no_mangle, used, cold, naked, link, link_name, crate_type, crate_name,
+    repr_, repr_kinds_of, track_caller, caller_location,
+    main, TestResult, test, bench, tests, benches, run_tests,
+    ignore, ignored_reason, is_ignored, is_test, is_bench,
+    serial, is_serial, should_panic, should_panic_of,
+    enable_feature, reset_features,
+)
+
 from .logging import (
     Logger, LogLevel, LogRecord, MemorySink, console_sink,
     log_trace, log_debug, log_info, log_warn, log_error,
@@ -234,6 +248,15 @@ __all__ = [
     "LintError", "LintLevel", "LintWarning",
     "lint_warn", "lint_allow", "lint_deny", "lint_forbid",
     "set_lint_level", "get_lint_level", "reset_lints",
+    # decor
+    "masterclass", "MasterMethod", "is_master",
+    "cfg_", "enable_feature", "reset_features",
+    "no_mangle", "used", "cold", "naked", "link", "link_name",
+    "crate_type", "crate_name",
+    "repr_", "repr_kinds_of", "track_caller", "caller_location",
+    "main", "TestResult", "test", "bench", "tests", "benches", "run_tests",
+    "ignore", "ignored_reason", "is_ignored", "is_test", "is_bench",
+    "serial", "is_serial", "should_panic", "should_panic_of",
     # logging
     "Logger", "LogLevel", "LogRecord", "MemorySink", "console_sink",
     "log_trace", "log_debug", "log_info", "log_warn", "log_error",

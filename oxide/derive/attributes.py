@@ -699,6 +699,25 @@ def enable_feature(*names: str) -> set[str]:
     return set(ENABLED_FEATURES)
 
 
+def reset_features() -> None:
+    """Disable every feature flag, returning :data:`ENABLED_FEATURES` to empty.
+
+    The counterpart to :func:`enable_feature`, mirroring ``reset_lints`` for the
+    lint registry.
+
+    Returns:
+        None.
+
+    Example:
+        >>> enable_feature("nightly", "simd") == {"nightly", "simd"}
+        True
+        >>> reset_features()
+        >>> ENABLED_FEATURES
+        set()
+    """
+    ENABLED_FEATURES.clear()
+
+
 def _platform_matches(token: str) -> bool:
     """Return whether a platform token matches the running interpreter."""
     import sys
@@ -757,6 +776,27 @@ def cfg(
         Traceback (most recent call last):
             ...
         oxide.derive.attributes.FeatureDisabledError: item was compiled out by cfg(feature='never_enabled')
+
+        The negating forms behave the other way around:
+
+        >>> @cfg(not_feature="never_enabled")
+        ... def portable():
+        ...     return "built"
+        >>> portable()
+        'built'
+        >>> enable_feature("nightly")
+        {'nightly'}
+
+        Once the feature exists, ``not_feature`` compiles the item out:
+
+        >>> @cfg(not_feature="nightly")
+        ... def stable_only():
+        ...     return 1
+        >>> stable_only()
+        Traceback (most recent call last):
+            ...
+        oxide.derive.attributes.FeatureDisabledError: item was compiled out by cfg(not_feature='nightly')
+        >>> reset_features()
     """
     conditions: list[str] = []
     if feature is not None:
@@ -775,7 +815,7 @@ def cfg(
     if feature is not None:
         holds = holds and feature in ENABLED_FEATURES
     if not_feature is not None:
-        holds = holds and not_feature in ENABLED_FEATURES
+        holds = holds and not_feature not in ENABLED_FEATURES
     if platform is not None:
         holds = holds and _platform_matches(platform)
     if not_platform is not None:
@@ -848,6 +888,7 @@ __all__ = [
     "deprecated",
     "doc",
     "enable_feature",
+    "reset_features",
     "export_name",
     "find_attribute",
     "forbid",

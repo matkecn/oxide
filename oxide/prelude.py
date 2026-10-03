@@ -86,6 +86,11 @@ from .derive import (
     lint_warn, lint_allow, lint_deny, lint_forbid,
 )
 
+from .decor import (
+    masterclass, MasterMethod, is_master,
+    TestResult, test, bench, tests, run_tests,
+)
+
 from .logging import (
     Logger, LogLevel, LogRecord, MemorySink, console_sink,
     log_trace, log_debug, log_info, log_warn, log_error,
