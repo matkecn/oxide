@@ -1,27 +1,60 @@
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "oxide"
-version = "2.0.0"
-description = "A comprehensive Rust-inspired type system and utility library for Python"
+version = "2.1.0"
+description = "Rust-inspired types, data structures, and utilities for Python"
 readme = "README.md"
-license = {text = "MIT"}
 requires-python = ">=3.10"
+license = "BSD-3-Clause"
+license-files = ["LICENSE"]
 authors = [
     {name = "matkecn"},
 ]
-keywords = ["rust", "oxide", "option", "result", "types", "utility", "concurrency"]
-classifiers = [
-    "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License",
-    "Operating System :: OS Independent",
+maintainers = [
+    {name = "matkecn"},
 ]
+keywords = [
+    "rust",
+    "option",
+    "result",
+    "iterator",
+    "collections",
+    "concurrency",
+    "derive",
+    "logging",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Typing :: Typed",
+]
+# The library is pure Python and uses only the standard library.
+dependencies = []
 
 [project.urls]
 Homepage = "https://github.com/matkecn/oxide"
 Repository = "https://github.com/matkecn/oxide"
+Issues = "https://github.com/matkecn/oxide/issues"
+Changelog = "https://github.com/matkecn/oxide/blob/main/README.md"
 
 [tool.setuptools.packages.find]
 include = ["oxide", "oxide.*"]
+
+[tool.setuptools.package-data]
+oxide = ["py.typed"]
+
+[tool.pytest.ini_options]
+addopts = "--doctest-modules"
+testpaths = ["oxide"]

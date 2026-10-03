@@ -79,6 +79,17 @@ Complete API documentation for all classes, functions, and types in the oxide li
   - [Debugging](#debugging)
   - [Panic](#panic)
 - [Miscellaneous](#miscellaneous)
+- [Regular Expressions](#regular-expressions)
+- [Validation & Sanitization](#validation--sanitization)
+- [Logging](#logging)
+  - [Log levels](#log-levels)
+  - [Loggers and sinks](#loggers-and-sinks)
+  - [Console and streams](#console-and-streams)
+- [Derive and Attribute Macros](#derive-and-attribute-macros)
+  - [Supported derives](#supported-derives)
+  - [Lints](#lints)
+- [Help](#help)
+- [Prelude](#prelude)
 
 ---
 
@@ -106,7 +117,7 @@ from oxide import Option, Some, None_
 | `unwrap_or_else(fn)` | `-> T` | Returns the contained value or computes from `fn` |
 | `map(fn)` | `-> Option[U]` | Transforms `Some(v)` to `Some(fn(v))` |
 | `map_or(default, fn)` | `-> U` | Maps or returns `default` |
-| `map_or_else(default, fn)` | `-> U` | Maps or computes default from function |
+| `map_or_else(default_fn, fn)` | `-> U` | Maps, or calls the zero-argument `default_fn()` for the fallback |
 | `and_(other)` | `-> Option[U]` | Returns `other` if `Some`, else `None_` |
 | `and_then(fn)` | `-> Option[U]` | Chains operations on `Some` values |
 | `or_(other)` | `-> Option[T]` | Returns `self` if `Some`, else `other` |
@@ -114,35 +125,44 @@ from oxide import Option, Some, None_
 | `filter(predicate)` | `-> Option[T]` | Returns `None_` if `Some` but predicate fails |
 | `inspect(fn)` | `-> Option[T]` | Calls `fn` with value if `Some`, returns self |
 
-**`Some(value)`** — Wrapper for present values.
+**`Some(value)`** — Frozen dataclass wrapper for a present value, subclassing `Option`.
 
 ```python
+from dataclasses import dataclass
+from typing import Generic, TypeVar
+
+from oxide import Option
+
+T = TypeVar("T")
+
 @dataclass(frozen=True)
-class Some(Option[T]):
+class Some(Option[T], Generic[T]):   # Option is Generic[T]
     value: T
 ```
 
-**`NoneOption`** — Singleton representing absence of value. Use `None_` or `none` constants.
+**`NoneOption`** — Singleton subclass of `Option` representing absence of a
+value. `repr()` is `None`. Do not instantiate it directly: use the `None_`
+constant, or the `none` alias.
 
 ```python
-None_ = NoneOption()  # Recommended
-none = None_          # Alias
+from oxide import NoneOption, None_, none
+
+NoneOption() is None_   # True — NoneOption() returns the singleton
+none is None_           # True — `none` is an alias for `None_`
 ```
 
 #### Usage Examples
 
 ```python
-from oxide import Option, Some, None_, _
+from oxide import Option, Some, None_, match, _
 
 # Creating options
 x: Option[int] = Some(5)
 y: Option[int] = None_
 
 # Pattern matching with match
-result = match(x, {
-    Some(v): f"Value is {v}",
-    None_:  "No value",
-})
+result = match(x).case(Some(_), "some").otherwise("none")   # 'some'
+result = match(y).case(Some(_), "some").otherwise("none")   # 'none'
 
 # Functional transformations
 doubled = x.map(lambda v: v * 2)  # Some(10)
@@ -219,7 +239,7 @@ def dangerous_operation() -> int:
 `Enum` provides tagged unions with pattern matching.
 
 ```python
-from oxide import Enum, match, _
+from oxide import Enum, Variant, match, None_, Some, _
 ```
 
 #### Classes
@@ -227,48 +247,106 @@ from oxide import Enum, match, _
 **`Enum`** — Base class for defining algebraic data types.
 
 ```python
+from oxide import Enum
 class Color(Enum):
-    RED = "red"
+    RED = "red"              # tag 'RED', payload 'red'
     GREEN = "green"
-    BLUE = "blue"
-    RGB = ("rgb", int, int, int)  # Variant with payload
+    RGB = "rgb", "payload"   # tag 'RGB', payload 'payload'
 ```
-
-**`Variant`** — Instance of an enum variant.
 
 | Method | Signature | Description |
 |--------|-----------|-------------|
-| `tag` | Property | The variant tag name |
-| `value` | Property | The variant payload |
-| `is_(*tags)` | `-> bool` | Checks if variant matches any tag |
-| `unwrap()` | `-> Any` | Returns the payload |
-| `expect(message)` | `-> Any` | Returns payload or raises with message |
-| `map(fn)` | `-> Variant` | Transforms the payload |
-| `and_then(fn)` | `-> Variant` | Chains operations on payload |
-| `match(*cases)` | `-> Any` | Pattern matches on tag |
+| `variants()` | `-> list[str]` | Class method; variant names in declaration order |
+| `is_valid(name)` | `-> bool` | Class method; True if `name` is a declared variant |
 
-**`match(value)`** — Creates a `Match` builder for exhaustive pattern matching.
+Only `str` values and `str`-leading tuples are collected as variants; attributes
+declared with any other type are left alone as ordinary class attributes.
+
+**`Variant`** — Instance of an enum variant. Created by attribute access on an
+`Enum` subclass, or directly via `Variant(tag, value)`.
 
 ```python
-result = match(Color.RED, {
-    Color.RED:   "Red color",
-    Color.GREEN: "Green color",
-    _:           "Unknown",
-})
+from oxide import Enum
+
+class Color(Enum):
+    RED = "red"
+    RGB = "rgb", "payload"
+
+Color.RED.tag        # 'RED'  — the declaration name, not the payload
+Color.RED.value      # 'red'
+Color.RGB.value      # 'payload'
+repr(Color.RED)      # "RED('red')"
+```
+
+| Method | Signature | Description |
+|--------|-----------|-------------|
+| `tag` | Property | The variant tag name (the declaration name) |
+| `value` | Property | The variant payload |
+| `is_(*tags)` | `-> bool` | True if the tag is any of `tags` — compares against `'RED'`, not `'red'` |
+| `unwrap()` | `-> Any` | Returns the payload |
+| `unwrap_or(default)` | `-> Any` | Returns the payload; `default` is ignored (a Variant always has a value) |
+| `expect(message)` | `-> Any` | Returns the payload; `message` is ignored, for Option/Result API parity |
+| `map(fn)` | `-> Variant` | Applies `fn` to the payload, keeping the tag |
+| `map_or(default, fn)` | `-> Any` | Returns `fn(payload)`; `default` is ignored |
+| `and_then(fn)` | `-> Variant` | Chains a function that returns a `Variant` |
+| `or_else(fn)` | `-> Variant` | Returns this same variant; `fn` is unused, for Option/Result API parity |
+| `match(*cases)` | `-> Any` | `(tag, handler)` pairs; raises `MatchError` if none match |
+
+```python
+from oxide import Enum, _
+
+class Color(Enum):
+    RED = "red"
+
+Color.RED.match(("RED", lambda v: f"warm: {v}"), ("BLUE", lambda v: "cold"))
+# 'warm: red'
+
+Color.RED.match((_, lambda v: "anything"))                       # 'anything'
+Color.RED.match((("RED", lambda v: v == "red"), lambda v: "guarded"),
+                ("RED", lambda v: "plain"))
+# 'guarded'  — ((tag, guard), handler) checks the guard first
+```
+
+**`match(value)`** — Creates a `Match` builder for ordered pattern matching over
+any value. Cases are evaluated in declaration order and the first hit wins.
+
+```python
+from oxide import None_, Some, _, match
+
+match(Some("Alice")).case(Some(_), "found").otherwise("missing")   # 'found'
+match(None_).case(Some(_), "found").otherwise("missing")          # 'missing'
+match(5).case_eq(0, "zero").case_range(1, 10, "small").otherwise("large")
+# 'small'
 ```
 
 #### Match Builder
 
-The `Match` class provides a fluent API for pattern matching:
+`Match` lives in `oxide.core.enum`, next to `Enum` and `Variant`. It is a
+different class from `RegexMatch`, which is the regex engine's match object.
+`Match` is single-use: `execute()` and `otherwise()` each consume it, so call
+one or the other exactly once.
 
 | Method | Description |
 |--------|-------------|
-| `case(pattern, handler)` | Add exact value match |
-| `case_type(typ, handler)` | Add type match |
-| `case_range(start, end, handler)` | Add range match |
-| `case_pred(predicate, handler)` | Add predicate match |
-| `case_in(collection, handler)` | Add membership match |
-| `otherwise(handler)` | Add catch-all and execute |
+| `case(pattern, handler, guard=)` | `value == pattern`, or `isinstance` for a type or tuple of types; `guard=` is an optional predicate |
+| `case_type(typ, handler, guard=)` | `isinstance(value, typ)` |
+| `case_eq(expected, handler, guard=)` | `value == expected` |
+| `case_range(start, end, handler, guard=)` | `start <= value < end` (half-open) |
+| `case_in(collection, handler, guard=)` | `value in collection` |
+| `case_pred(pred, handler, guard=)` | `pred(value)` is truthy |
+| `otherwise(handler)` | Catch-all; **evaluates and returns the result** |
+| `execute()` | Evaluates the cases; raises `MatchError` if none match |
+
+Handlers may be constants or callables; a callable receives the matched value.
+
+```python
+from oxide import match
+match("hi").case_type(str, lambda s: len(s)).execute()          # 2
+match(5).case(5, "five", guard=lambda n: n % 2 == 1).otherwise("other")
+# 'five'
+match(3.5).case_type(int, "int").case_type(str, "str").otherwise("float")
+# 'float'
+```
 
 ---
 
@@ -310,19 +388,26 @@ from oxide import (
 #### Helper Functions
 
 ```python
-clone(value)           # Clone with fallback to deepcopy
-debug(value)           # Debug representation
-display(value)         # Display representation
-default_of(cls)        # Get default instance
-from_(cls, value)      # Convert to type
-into(value, target)    # Convert to target type
-try_from(cls, value)   # Fallible conversion
-try_into(value, target) # Fallible conversion
-as_ref(value)          # Borrow reference
-as_mut(value)          # Borrow mutable reference
-deref(value)           # Dereference
-deref_mut(value)       # Mutable dereference
-drop(value)            # Explicit drop
+from oxide import (
+    Vec, as_mut, as_ref, clone, debug, default_of, deref, deref_mut, display,
+    drop, from_, into, try_from, try_into,
+)
+
+value = Vec([1, 2, 3])
+
+clone(value)                  # Vec([1, 2, 3])
+debug(value)                  # Debug representation
+display(value)                # Display representation
+default_of(list)              # Get default instance
+from_(list, [1, 2])           # cls first
+into("42", int)               # value first, then the target type
+try_from(int, "42")           # Ok(value=42)
+try_into("42", int)           # Ok(value=42)
+as_ref(value)                 # Borrow reference
+as_mut(value)                 # Borrow mutable reference
+deref(value)                  # Dereference
+deref_mut(value)              # Mutable dereference
+drop(value)                   # Explicit drop
 ```
 
 ---
@@ -379,7 +464,11 @@ from oxide import Error, Backtrace, Location, context
 **`Location`** — Source file location (file, line, column).
 
 ```python
-context("during parsing", original_error)  # Create error with context
+from oxide import Error, context
+
+original_error = Error("bad token")
+context("during parsing", original_error).message()   # 'bad token'
+context("during parsing", original_error).context()   # 'during parsing'
 ```
 
 ---
@@ -464,21 +553,41 @@ from oxide import HashMap, Entry, OccupiedEntry, VacantEntry
 
 #### Entry API
 
+`entry(key)` returns an `OccupiedEntry` when the key exists and a `VacantEntry`
+when it does not. Both expose `key()`, `is_occupied()` and `is_vacant()`, and
+their mutating methods all return the entry, so calls chain. Handlers receive a
+`MutableValue` — use `.get()` and `.set()` rather than plain operators.
+
 ```python
+from oxide import HashMap
+
+table = HashMap.new()
+table.insert("key", 1)
+
 # Efficient in-place manipulation
-entry = map.entry("key")
-match entry:
-    case OccupiedEntry():
-        # Key exists, can modify value
-        entry.insert(new_value)
-    case VacantEntry():
-        # Key missing, can insert
-        entry.insert(default_value)
+entry = table.entry("key")
+entry.is_occupied()                      # True if the key was already present
+entry.and_modify(lambda v: v.set(v.get() + 10))   # occupied only
+entry.get_mut().set(99)                  # occupied only
 
 # One-liner insert-or-default
-map.or_insert("key", default_value)
-map.or_insert_with("key", lambda: expensive_computation())
+table.or_insert("missing", 0)                  # returns the effective value
+table.or_insert_with("other", lambda: 2)
+table.or_insert_with_key("key", lambda k: len(k))
+table.insert_entry("fresh", 3)                 # insert, then an OccupiedEntry
+table.remove_entry("fresh")                    # -> Option[(K, V)]
 ```
+
+| Entry method | Availability | Description |
+|--------------|--------------|-------------|
+| `key()` | both | The entry's key |
+| `is_occupied()` / `is_vacant()` | both | Which kind of entry this is |
+| `get()` / `get_mut()` | occupied | The value, or a `MutableValue` handle for in-place mutation |
+| `insert(value)` | both | Insert (occupied overwrites) |
+| `remove_entry()` | both | Remove and return `(key, value)` |
+| `or_insert(value)` | both | Insert `value` only if vacant; returns the effective value |
+| `or_insert_with(fn)` / `or_insert_with_key(fn)` | both | As above, computed lazily |
+| `and_modify(fn)` | occupied | Apply `fn(MutableValue)` in place |
 
 ---
 
@@ -650,12 +759,20 @@ from oxide import Iter
 #### Creating Iterators
 
 ```python
-Iter.from_fn(lambda i: i * 2, start=0)  # Infinite iterator from function
-Iter.repeat(value)                       # Infinite repetition
-Iter.count(start=0, step=1)              # Infinite counter
-Iter.zip(a, b)                           # Zipped iterators
-Iter.chain(a, b, c)                      # Chained iterators
+from oxide import Iter
+
+Iter([1, 2, 3])                          # From any iterable
+Iter.from_fn(lambda i: i * 2, start=0).take(4).collect()   # [0, 2, 4, 6]
+Iter.repeat([1, 2]).take(5).collect()    # cycles the iterable FOREVER
+Iter.chain([1, 2], [3]).collect()        # [1, 2, 3]
+Iter.zip([1, 2], ["a", "b"]).collect()   # [(1, 'a'), (2, 'b')]
 ```
+
+> `from_fn`, `repeat`, `chain` and `zip` are callable directly on the `Iter`
+> class; `repeat` cycles forever, so always bound it with `take(...)`.
+> There is no `Iter.range(...)` — use `Iter(range_(1, 5))`.
+> Beware `count`: `Iter([1, 2, 3]).count()` is a *consumer* returning the number
+> of remaining items, and there is no infinite-counter classmethod.
 
 #### Adapter Methods
 
@@ -704,7 +821,7 @@ Iter.chain(a, b, c)                      # Chained iterators
 
 ```python
 from oxide import (
-    Enumerate, Zip, Map, Filter, FilterMap, FlatMap, Flatten,
+    Enumerate, Zip, Map, FilterIter, FilterMap, FlatMap, Flatten,
     Peekable, Fuse, Chain, Cycle, Take, Skip, Rev, Inspect,
     Copied, Cloned, Partition,
 )
@@ -715,7 +832,7 @@ from oxide import (
 | `Enumerate(iterable, start)` | Add index to each element |
 | `Zip(a, b)` | Pair elements from two iterables |
 | `Map(iterable, fn)` | Transform each element |
-| `Filter(iterable, pred)` | Keep matching elements |
+| `FilterIter(iterable, pred)` | Keep matching elements |
 | `FilterMap(iterable, fn)` | Filter and transform in one pass |
 | `FlatMap(iterable, fn)` | Map and flatten |
 | `Flatten(iterable)` | Flatten nested iterables |
@@ -769,10 +886,17 @@ from oxide import Box
 | `pin()` | `-> Pin[T]` | Pin the value |
 
 ```python
+from oxide import Box
+
 b = Box.new(42)
-with Box.new(expensive_value()) as b:
-    use(b.as_ref())
-# Automatically cleaned up
+b.as_ref()                 # 42
+b.into_inner()             # 42
+Box.from_fn(lambda: [1, 2]).as_ref()   # Allocate with lazy computation
+Box.new([1, 2, 3]).leak()  # Leak — the value is never freed
+Box.new([1]).pin()         # Pin the value
+
+with Box.new([1, 2, 3]) as owned:
+    owned.as_ref()         # [1, 2, 3] — dropped at the end of the block
 ```
 
 ---
@@ -845,6 +969,7 @@ from oxide import Cell
 | `into_inner()` | `-> T` | Unwrap value |
 
 ```python
+from oxide import Cell
 c = Cell.new(5)
 c.set(10)
 print(c.get())  # 10
@@ -886,6 +1011,7 @@ from oxide import RefCell, Ref, RefMut
 - Context manager protocol supported
 
 ```python
+from oxide import BorrowMutError, RefCell
 cell = RefCell.new(42)
 
 # Multiple immutable borrows
@@ -925,9 +1051,13 @@ from oxide import OnceCell
 | `is_initialized()` | `-> bool` | Check if initialized |
 
 ```python
+from oxide import OnceCell
+
 cell = OnceCell.new()
-cell.get_or_init(lambda: expensive_computation())
-print(cell.get())  # Computed value
+cell.get()                          # None before initialisation
+cell.get_or_init(lambda: {"config": "loaded"})
+print(cell.get())                   # {'config': 'loaded'}
+cell.set({"config": "replaced"})    # False — already initialised
 ```
 
 ---
@@ -948,10 +1078,13 @@ from oxide import Lazy
 | `try_into_inner()` | `-> T \| None` | Try to get if computed |
 
 ```python
-lazy = Lazy(lambda: expensive_computation())
-# Not computed yet
-result = lazy.force()  # Computed on first call
-# Subsequent calls return cached value
+from oxide import Lazy
+
+lazy = Lazy.new(lambda: sum(range(1000)))
+lazy.is_forced()              # False — not computed yet
+lazy.force()                  # 499500 — computed on the first call
+lazy.force()                  # 499500 — cached from then on
+lazy.is_forced()              # True
 ```
 
 ---
@@ -975,9 +1108,15 @@ from oxide import Cow, CowBorrowed, CowOwned
 | `unwrap()` | `-> T` | Unwrap value |
 
 ```python
-# Efficient: no copy if not modified
-data = CowBorrowed("hello")
-owned = data.into_owned()  # Copies here
+from oxide import Cow, CowBorrowed, CowOwned
+
+# Efficient: no copy while only reading
+data = CowBorrowed([1, 2, 3])
+data.is_borrowed()            # True
+data.as_ref()                 # [1, 2, 3] — no copy
+data.into_owned()             # [1, 2, 3] — a detached copy, `data` unchanged
+data.map(lambda v: v + [4])   # a new Cow of the *same* variant
+CowOwned([1, 2]).is_owned()   # True
 ```
 
 ---
@@ -1063,6 +1202,7 @@ from oxide import Mutex, MutexGuard
 - `release()`: Release lock early
 
 ```python
+from oxide import Mutex
 counter = Mutex.new(0)
 
 def increment():
@@ -1095,7 +1235,9 @@ from oxide import RwLock, RwLockReadGuard, RwLockWriteGuard
 | `into_inner()` | `-> T` | Unwrap value |
 
 ```python
-data = RwLock.new(vec)
+from oxide import RwLock
+
+data = RwLock.new([1, 2, 3])
 
 # Multiple readers can hold locks simultaneously
 with data.read() as r:
@@ -1103,7 +1245,8 @@ with data.read() as r:
 
 # Writers get exclusive access
 with data.write() as w:
-    w.value.push(42)
+    w.value.append(4)
+print(data.into_inner())   # [1, 2, 3, 4]
 ```
 
 ---
@@ -1145,6 +1288,7 @@ from oxide import Channel, Sender, Receiver
 | `is_empty()` | `-> bool` | Check if empty |
 
 ```python
+from oxide import Channel
 ch = Channel.bounded(10)
 sender, receiver = ch.sender, ch.receiver
 
@@ -1195,6 +1339,7 @@ from oxide import Atomic, AtomicBool, AtomicInt
 | `compare_and_set(current, new)` | `-> bool` | CAS operation |
 
 ```python
+from oxide import AtomicInt
 counter = AtomicInt.new(0)
 
 def increment():
@@ -1221,6 +1366,7 @@ from oxide import Barrier
 | `wait()` | `-> int` | Wait for all threads (returns 0 for last) |
 
 ```python
+from oxide import Barrier
 barrier = Barrier(3)
 
 def worker():
@@ -1248,6 +1394,7 @@ from oxide import Condvar
 | `notify_all()` | `-> None` | Wake all waiting threads |
 
 ```python
+from oxide import Condvar
 cond = Condvar.new()
 ready = False
 
@@ -1279,6 +1426,7 @@ from oxide import Once
 | `is_completed()` | `-> bool` | Check if executed |
 
 ```python
+from oxide import Once
 init_once = Once.new()
 
 def initialize():
@@ -1303,6 +1451,7 @@ from oxide import Semaphore
 | `available()` | `-> int` | Get available permits |
 
 ```python
+from oxide import Semaphore
 sem = Semaphore.new(5)  # Max 5 concurrent
 
 def task():
@@ -1345,6 +1494,7 @@ from oxide import Duration, UNIX_EPOCH
 | `div(rhs)` | `-> Duration` | Divide by scalar |
 
 ```python
+from oxide import Duration
 d = Duration.from_secs(5) + Duration.from_millis(500)
 print(d.as_millis())  # 5500
 ```
@@ -1372,9 +1522,10 @@ from oxide import Instant
 | `as_millis()` | `-> int` | Get as milliseconds |
 
 ```python
+from oxide import Instant
+
 start = Instant.now()
-do_work()
-elapsed = start.elapsed()
+elapsed = start.elapsed()      # 0.0 ms — measured against now
 print(f"Took {elapsed.as_millis()}ms")
 ```
 
@@ -1512,6 +1663,7 @@ from oxide import Cursor, SeekFrom
 **`SeekFrom`** — Seek position specification.
 
 ```python
+from oxide import SeekFrom
 SeekFrom.start(0)      # From beginning
 SeekFrom.current(0)    # From current position
 SeekFrom.end(0)        # From end
@@ -1561,6 +1713,7 @@ from oxide import Path
 | `read_dir()` | `-> ReadDir` | Read directory contents |
 
 ```python
+from oxide import Path
 p = Path("/tmp/data")
 p.create_dir_all()
 (p / "file.txt").write_str("hello")
@@ -1622,6 +1775,7 @@ from oxide import File, OpenOptions
 **`OpenOptions`** — Builder for file open modes.
 
 ```python
+from oxide import OpenOptions
 file = (OpenOptions.new()
     .read(True)
     .write(True)
@@ -1688,9 +1842,11 @@ from oxide import TcpListener
 | `local_addr()` | `-> SocketAddr \| None` | Get local address |
 
 ```python
-listener = TcpListener.bind(addr)
-for conn in listener.incoming():
-    handle_connection(conn)
+from oxide import SocketAddr, TcpListener
+
+# bind() needs a SocketAddr, not a string
+listener = TcpListener.bind(SocketAddr.from_str("127.0.0.1:0"))
+print(listener.local_addr())
 ```
 
 ---
@@ -1724,6 +1880,7 @@ from oxide import Ipv4Addr, Ipv6Addr, IpAddr, SocketAddr, Shutdown
 **`Ipv4Addr`**
 
 ```python
+from oxide import Ipv4Addr
 addr = Ipv4Addr(127, 0, 0, 1)  # or
 addr = Ipv4Addr.from_str("127.0.0.1")
 addr = Ipv4Addr.localhost()
@@ -1743,15 +1900,19 @@ addr = Ipv4Addr.localhost()
 **`IpAddr`** — Union of IPv4 and IPv6.
 
 ```python
-addr = IpAddr.v4(Ipv4Addr(127, 0, 0, 1))
-addr = IpAddr.v6(Ipv6Addr.localhost())
+from oxide import IpAddr, Ipv4Addr, Ipv6Addr
+
+IpAddr.v4(Ipv4Addr(127, 0, 0, 1))   # 127.0.0.1
+IpAddr.v6(Ipv6Addr.localhost())     # ::1
 ```
 
 **`SocketAddr`** — IP address with port.
 
 ```python
-addr = SocketAddr.new_v4(Ipv4Addr(127, 0, 0, 1), 8080)
-addr = SocketAddr.from_str("127.0.0.1:8080")
+from oxide import Ipv4Addr, SocketAddr
+
+SocketAddr.new_v4(Ipv4Addr(127, 0, 0, 1), 8080)   # 127.0.0.1:8080
+SocketAddr.from_str("127.0.0.1:8080")              # 127.0.0.1:8080
 ```
 
 ---
@@ -1768,7 +1929,7 @@ from oxide import Command, Stdio
 
 | Method | Signature | Description |
 |--------|-----------|-------------|
-| `new(program)` | Constructor | Create command |
+| `Command(program)` | Constructor | Create command |
 | `arg(arg)` | `-> Command` | Add argument |
 | `args(args)` | `-> Command` | Add multiple arguments |
 | `env(key, val)` | `-> Command` | Set environment variable |
@@ -1782,11 +1943,9 @@ from oxide import Command, Stdio
 | `status()` | `-> ExitStatus` | Run and get status |
 
 ```python
-output = (Command.new("ls")
-    .arg("-la")
-    .current_dir("/tmp")
-    .output())
+from oxide import Command
 
+output = Command("ls").arg("-la").current_dir("/tmp").output()
 print(output.stdout_str())
 ```
 
@@ -1812,10 +1971,11 @@ from oxide import Child, Stdio
 **`Stdio`** — Standard stream configuration.
 
 ```python
+from oxide import Stdio
 Stdio.inherit()    # Inherit from parent
 Stdio.piped()      # Create pipe
 Stdio.null()       # Discard output
-Stdio.from_path()  # Redirect to file
+Stdio.from_path("out.txt")  # Redirect to a file
 ```
 
 ---
@@ -1881,12 +2041,25 @@ from oxide import Future, Poll, Waker, spawn
 | `and_then(fn)` | `-> Future[U]` | Chain futures |
 
 ```python
+import asyncio
+from oxide import Future
+
 async def fetch_data() -> str:
     return "data"
 
-future = Future(fetch_data())
-result = await future
+async def main() -> None:
+    print(await Future(fetch_data()))     # 'data'
+    print(Future.ready(7).result())      # 7 — already resolved
+    pending = Future.pending()
+    print(pending.result(), pending.is_done())   # None False
+    print(pending.poll())                # Poll::Pending
+
+asyncio.run(main())
 ```
+
+> `Future.map()` and `Future.and_then()` build a *new coroutine*, not a resolved
+> `Future`, so call `.result()` on them and you get `None` — `await` the mapped
+> future (or drive it through an event loop) instead.
 
 ---
 
@@ -1957,8 +2130,15 @@ from oxide import JoinHandle, spawn
 | `join(timeout)` | `-> T \| None` | Wait for completion |
 
 ```python
-handle = spawn(fetch_data())
-result = handle.get_result()  # Blocks until done
+import asyncio
+from oxide import spawn
+
+async def fetch_data() -> str:
+    return "data"
+
+handle = spawn(fetch_data())     # Runs on a daemon thread
+print(handle.join())             # 'data' — blocks until done
+print(handle.get_result())       # 'data'
 ```
 
 ---
@@ -2004,6 +2184,7 @@ from oxide import Formatter, format_, write_, writeln_, dbg_, dbg, cfg, matches
 **`Formatter`** — Buffer for building formatted strings.
 
 ```python
+from oxide import Formatter
 f = Formatter()
 f.write_str("Hello")
 f.write_char(" ")
@@ -2029,12 +2210,19 @@ from oxide import panic, todo, unimplemented, ScopeGuard, defer
 **`ScopeGuard`** — RAII-style cleanup.
 
 ```python
-with defer(lambda: cleanup()):
-    do_work()
-# cleanup() called on exit
+from oxide import ScopeGuard, defer
 
-guard = ScopeGuard(lambda: cleanup())
-guard.cancel()  # Prevent execution
+def cleanup() -> None:
+    print("cleaned up")
+
+def do_work() -> None:
+    print("working")
+
+with defer(cleanup):
+    do_work()          # 'working' then 'cleaned up' on exit
+
+guard = ScopeGuard(cleanup)
+guard.cancel()         # Prevent execution
 ```
 
 ---
@@ -2095,6 +2283,7 @@ from oxide import ControlFlow
 **`Wrapping[T]`** — Wrapping arithmetic (overflow wraps).
 
 ```python
+from oxide import Wrapping
 w = Wrapping(255) + 1  # Wrapping(0)
 ```
 
@@ -2109,6 +2298,7 @@ w = Wrapping(255) + 1  # Wrapping(0)
 **`Saturating[T]`** — Saturating arithmetic (clamps at bounds).
 
 ```python
+from oxide import Saturating
 s = Saturating(2**31 - 1) + 1  # Saturating(2**31 - 1)
 ```
 
@@ -2121,6 +2311,7 @@ s = Saturating(2**31 - 1) + 1  # Saturating(2**31 - 1)
 **`NonZero[T]`** — Non-zero numeric wrapper.
 
 ```python
+from oxide import NonZero
 nz = NonZero.new(5)      # Create (raises if 0)
 nz = NonZero.try_new(0)  # Returns None if 0
 ```
@@ -2132,12 +2323,14 @@ nz = NonZero.try_new(0)  # Returns None if 0
 **`SmallVec[T]`** — Stack-optimized small vector.
 
 ```python
+from oxide import SmallVec
 sv = SmallVec([1, 2, 3], stack_limit=8)
 ```
 
 **`ArrayVec[T]`** — Fixed-capacity vector.
 
 ```python
+from oxide import ArrayVec
 av = ArrayVec.with_capacity(10)
 av.push(42)  # Raises OverflowError if full
 ```
@@ -2145,6 +2338,7 @@ av.push(42)  # Raises OverflowError if full
 **`TinyVec[T]`** — Inline-to-heap vector.
 
 ```python
+from oxide import TinyVec
 tv = TinyVec()
 for i in range(100):
     tv.push(i)  # Moves to heap when inline limit exceeded
@@ -2153,6 +2347,7 @@ for i in range(100):
 **`BitVec`** — Bit vector.
 
 ```python
+from oxide import BitVec
 bv = BitVec()
 bv.push(True)
 bv.push(False)
@@ -2166,6 +2361,8 @@ print(bv.to_bytes())  # b'\x01'
 `CreateMeta` — Library metadata (for internal use).
 
 ```python
+from dataclasses import dataclass
+
 @dataclass(frozen=True)
 class CreateMeta:
     libname: str
@@ -2183,6 +2380,115 @@ class CreateMeta:
 
 ---
 
+## Regular Expressions
+
+`oxide.regex` is a linear-time engine: patterns compile to a Thompson NFA
+simulated by a Pike VM, so matching costs `O(len(text) * len(program))` and
+catastrophic backtracking cannot occur. Backreferences, lookaround, atomic and
+possessive groups, and unicode property escapes raise `RegexError`, matching
+what Rust's `regex` crate rejects.
+
+```python
+from oxide import Regex, RegexMatch, RegexError, IGNORECASE
+from oxide import regex          # the functions, namespaced
+
+pattern = Regex(r"[a-z]+@[a-z]+\.[a-z]+", IGNORECASE)
+match = pattern.search("Ann@Example.COM")   # RegexMatch
+match.span(), match.group(), match.groups()
+```
+
+### Names
+
+| Name | Description |
+|------|-------------|
+| `Regex(pattern, flags=0)` | Compiled pattern with `search`/`match`/`fullmatch`/`findall`/`finditer`/`split`/`sub`/`subn` |
+| `RegexMatch` | The match object, exported under this name because `Match` at the top level is the enum `match` macro's result |
+| `RegexError` | Raised for malformed patterns and unsupported constructs |
+
+### Functions
+
+Available in the `oxide.regex` namespace rather than at the top level, so they
+cannot shadow `oxide.match`.
+
+```python
+from oxide import regex
+
+pattern = r"(?P<user>[a-z]+)"
+string = "ann@example"
+repl = r"\g<user>"
+
+regex.compile(pattern, flags=0)     # -> Regex
+regex.match(pattern, string, flags=0)
+regex.fullmatch(pattern, string, flags=0)
+regex.search(pattern, string, flags=0)
+regex.findall(pattern, string, flags=0)
+regex.finditer(pattern, string, flags=0)
+regex.split(pattern, string, maxsplit=0, flags=0)
+regex.sub(pattern, repl, string, count=0, flags=0)
+regex.subn(pattern, repl, string, count=0, flags=0)
+regex.escape(string)
+regex.purge()
+```
+
+### Flags
+
+| Flag | Alias | Description |
+|------|-------|-------------|
+| `ASCII` | `A` | `\w`, `\d`, `\s` and `\b` are ASCII-only |
+| `IGNORECASE` | `I` | Case-insensitive, folded with simple case mappings |
+| `MULTILINE` | `M` | `^` and `$` match at line boundaries |
+| `DOTALL` | `S` | `.` also matches newline |
+| `UNICODE` | `U` | Unicode semantics (the default) |
+| `VERBOSE` | `X` | Ignore whitespace and allow `#` comments |
+
+---
+
+## Validation & Sanitization
+
+`oxide.filter` is a PHP `filter_var()`-style port that returns `Result` values
+instead of PHP's `false`/`null` sentinel.
+
+```python
+from oxide import Filter, FilterError
+
+Filter.validate("a@b.com", Filter.EMAIL)   # Ok(value='a@b.com')
+Filter.validate("nope", Filter.EMAIL)       # Err(FilterError)
+Filter.is_valid("https://example.com", Filter.URL)
+Filter.sanitize("<b>hi</b>", Filter.SANITIZE_SPECIAL_CHARS)
+```
+
+| Method | Description |
+|--------|-------------|
+| `Filter.validate(value, name, flags=0, options=None)` | Validate, returning `Ok` with the coerced value or `Err` with a reason |
+| `Filter.is_valid(value, name, flags=0, options=None)` | `bool` form of `validate` |
+| `Filter.var(value, name, flags=0, options=None)` | The coerced value on success, `None` on failure |
+| `Filter.sanitize(value, name, flags=0)` | Sanitize and return the value |
+| `Filter.register(name, validator=..., sanitizer=...)` | Register a custom filter at runtime |
+| `Filter.unregister(name)` | Remove a previously registered filter |
+| `Filter.is_validator(name)` / `Filter.is_sanitizer(name)` | Whether a name is registered, and of which kind |
+
+There are no module-level `validate_var`/`filter_var`/`is_valid`/`sanitize_var`
+pass-throughs. Everything lives on the class; the low-level predicates and
+sanitizers are available from `oxide.filter.validators` and
+`oxide.filter.sanitizers`.
+
+### Validators
+
+`BOOLEAN`, `INT`, `FLOAT`, `NUMERIC`, `EMAIL`, `URL`, `IP`, `IPV4`, `IPV6`,
+`DOMAIN`, `REGEXP`, `MAC`, `HEX`, `UUID`, `ALPHA`, `ALPHA_NUMERIC`, `SLUG`,
+`JSON`, `DATE`
+
+### Sanitizers
+
+`SANITIZE_EMAIL`, `SANITIZE_URL`, `SANITIZE_URL_RAW`, `SANITIZE_NUMBER_INT`,
+`SANITIZE_NUMBER_FLOAT`, `SANITIZE_SPECIAL_CHARS`, `SANITIZE_STRING`,
+`SANITIZE_STRIPPED`, `SANITIZE_ENCODED`
+
+`Filter` at the top level is this validation class; the iterator adapter that
+used to hold the name is now `FilterIter`.
+
+---
+
 ## Prelude
 
 Import common types with a single import:
@@ -2191,4 +2497,218 @@ Import common types with a single import:
 from oxide.prelude import *
 ```
 
-Includes: `Option`, `Some`, `None_`, `Result`, `Ok`, `Err`, `Enum`, `match`, `_`, `Vec`, `HashMap`, `HashSet`, `Box`, `Rc`, `Arc`, `Cell`, `RefCell`, `OnceCell`, `Lazy`, `Cow`, `Mutex`, `RwLock`, `Channel`, `Duration`, `Instant`, `SystemTime`, `Path`, `File`, `TcpStream`, `TcpListener`, `UdpSocket`, `Command`, `Child`, `Future`, `Poll`, `Stream`, and more.
+Includes: `Option`, `Some`, `None_`, `Result`, `Ok`, `Err`, `Enum`, `match`, `_`, `Vec`, `HashMap`, `HashSet`, `Box`, `Rc`, `Arc`, `Cell`, `RefCell`, `OnceCell`, `Lazy`, `Cow`, `Mutex`, `RwLock`, `Channel`, `Duration`, `Instant`, `SystemTime`, `Path`, `File`, `TcpStream`, `TcpListener`, `UdpSocket`, `Command`, `Child`, `Future`, `Poll`, `Stream`, `Regex`, `Filter`, `Logger`, `derive_`, `Help`, and more.
+
+---
+
+## Logging
+
+`oxide.logging` layers console output, the standard streams, and structured
+loggers. It is exported at the top level with `log_`-prefixed level helpers so
+that `info`, `debug`, and `warn` stay unambiguous.
+
+```python
+from oxide.logging import Logger, MemorySink, log_info, println
+
+sink = MemorySink()
+logger = Logger("worker", sink=sink, level="info")
+logger.info("listening on {port}", port=8080)
+sink.messages()                  # ['listening on 8080']
+
+println("to stdout")             # console output, like Rust's println!
+log_info("to the default logger")  # routed to a Logger, which writes to stderr
+```
+
+### Log levels
+
+`LogLevel` is a `str` subclass, so it compares equal to its own name
+(`LogLevel.WARN == "WARN"`) while ordering by verbosity rather than
+alphabetically (`LogLevel.ERROR < LogLevel.TRACE`).
+
+| Level | Short | Meaning |
+|-------|-------|---------|
+| `LogLevel.ERROR` | `ERR` | Something failed and the caller must know |
+| `LogLevel.WARN` | `WARN` | Something is suspicious but recoverable |
+| `LogLevel.INFO` | `INFO` | Normal, expected progress |
+| `LogLevel.DEBUG` | `DBG` | Detail useful while diagnosing a problem |
+| `LogLevel.TRACE` | `TRACE` | Everything, including per-iteration detail |
+
+The short forms are the `LogLevel.short` attribute, not separate class
+attributes — `LogLevel.WARN.short` is `"WARN"`, `LogLevel.ERROR.short` is
+`"ERR"`. Each level also carries `name`, `rank` (0 for ERROR through 4 for
+TRACE), `color`, `is_verbose`, and `is_severe`.
+
+| Function | Description |
+|----------|-------------|
+| `resolve_level(level)` | Normalise a name or alias (`"warning"`) to a canonical level |
+| `level_rank(level)` | Verbosity rank, `0` for ERROR through `4` for TRACE |
+| `levels()` | Every level name, least to most verbose |
+| `enabled_levels(level=None)` | The level names a threshold admits |
+
+### Loggers and sinks
+
+| Name | Signature | Description |
+|------|-----------|-------------|
+| `Logger` | `Logger(target, *, level=..., parent=None, sink=None, enabled=True)` | A named logger with a level threshold and a sink |
+| `Logger.child` | `child(target, **kwargs)` | A nested logger inheriting the parent's level and sink |
+| `Logger.log` | `log(level, message, *args, **kwargs) -> bool` | Emit at any level; `args`/`kwargs` fill a format template |
+| `Logger.enabled_for` | `enabled_for(level) -> bool` | Whether a record at that level would be emitted |
+| `Logger.records` | `records() -> list[LogRecord]` | Captured records, when the sink is a `MemorySink` |
+| `LogRecord` | `LogRecord(level, target, message)` | One captured event, with `.level`, `.target`, `.message`, `.timestamp` |
+| `MemorySink` | `MemorySink()` | Keeps records in memory for tests |
+| `console_sink` | `console_sink(stream=None, *, color=None, format_=...)` | Writes formatted lines, defaulting to stderr |
+| `set_default_logger` | `set_default_logger(logger \| None)` | Replace the logger the `log_*` functions route to |
+| `default_logger` | `default_logger() -> Logger` | The current default logger |
+
+Module-level shortcuts — `log_trace`, `log_debug`, `log_info`, `log_warn`,
+`log_error`, and `log(level, message, ...)` — route to the default logger and
+return `True` when the record was emitted.
+
+### Console and streams
+
+Rust's `println!`/`eprint!` and the `std::io` handles, with every name also
+available as a plain function.
+
+| Name | Description |
+|------|-------------|
+| `println(*values)` / `print_(*values)` | Write to stdout, with or without a trailing newline |
+| `eprintln(*values)` / `eprint_(*values)` | The same for stderr |
+| `stdin()` / `stdout()` / `stderr()` | Handles on the standard streams |
+| `Stdin.read_line()` | One line, keeping its newline; `None` at end of input |
+| `Stdin.read_line_or(fallback)` | One line, or `fallback` at end of input |
+| `Stdin.read_all()` | The rest of the stream |
+| `Stdout.write(text) -> int` | Writes and returns the character count |
+| `set_stdin/set_stdout/set_stderr(stream)` | Redirect a stream; `None` restores the default |
+| `capture() -> (out, err)` | Redirect both output streams into `StringIO` buffers |
+| `style(text, *names)` | Wrap text in ANSI codes; a no-op when colour is off |
+| `set_color(enabled)` | Force colour on or off; `None` restores detection |
+| `color_enabled() -> bool` | Honouring `NO_COLOR` and `FORCE_COLOR` |
+
+---
+
+## Derive and Attribute Macros
+
+`oxide.derive` provides Rust's `#[derive(...)]` and `#[warn]`-style attributes.
+Because Python has no compile step, derives are applied by a class decorator and
+lints are resolved when the decorated function is called.
+
+```python
+from oxide.derive import derive, memoize, lint_warn
+
+@derive("Debug", "Clone", "Default")
+class Config:
+    __slots__ = ("host", "port")
+    def __init__(self, host="localhost", port=8080):
+        self.host = host
+        self.port = port
+
+Config.default()                  # Config { host: 'localhost', port: 8080 }
+Config.default(port=9090)         # per-field overrides win
+```
+
+### Supported derives
+
+`Debug`, `Display`, `Clone`, `Copy`, `PartialEq`, `Eq`, `PartialOrd`, `Ord`,
+`Hash`, `Default`, `Error`.
+
+Aliases are accepted: `repr` → `Debug`, `fmt` → `Display`, `eq` → `Eq`, and so
+on. `derive(*names, fields=None, defaults=None, pretty=False, overwrite=False)`
+installs the generated attributes and records what it made in
+`cls.derive`. Hand-written implementations are never replaced unless
+`overwrite=True`. `Default` resolves each field from, in order: an override
+passed to `default()`, the `defaults` mapping, a `default_<field>` class
+attribute, then the matching `__init__` parameter default — and raises
+`DeriveError` when a field has no default anywhere, exactly as Rust refuses to
+compile.
+
+| Function | Description |
+|----------|-------------|
+| `derive_fields(cls)` | The field names a derive would use |
+| `derives_of(cls)` / `is_derived(cls, name)` | What was generated for a class |
+| `memoize(maxsize=None, *, key=None)` | Cache results, falling back to `repr` for unhashable arguments |
+| `once()` | Run the function at most once |
+| `pure(message=None, *, lint=...)` | Memoize, and record a side-effect-free contract |
+| `timed(label=None, *, printer=None, scale=1.0, unit="ms")` | Report elapsed time |
+| `log_calls(*, level=..., logger=None, ...)` | Log every call through `oxide.logging` |
+| `must_use(message=None, *, lint=..., level=None, check=False)` | Lint an ignored return value |
+| `deprecated(note='', *, since=None, version=None, ...)` | Warn on use |
+| `inline(always=False, *, reason=None)` / `export_name(name)` | Marking attributes |
+| `non_exhaustive(target)` | Mark an `Enum` as open to future variants |
+
+### Lints
+
+Levels follow Rust: `allow`, `warn`, `deny`, `forbid`. Because a configured level
+raises the floor, `set_lint_level` and `lint_scope` can turn a `warn` into an
+error globally or within a block, and a decorator's `level=` argument can raise
+it for one use.
+
+| Name | Description |
+|------|-------------|
+| `warn`, `allow`, `deny`, `forbid` | Attribute decorators; also exported as `lint_*` |
+| `set_lint_level(lint, level)` | Set a lint's level for the process |
+| `get_lint_level(lint)` / `lint_levels()` | Read configured levels |
+| `lint_scope(**levels)` | Context manager applying levels for a block |
+| `cap_lint(lint)` | The highest level a lint may reach |
+| `reset_lints()` | Forget every level and cap |
+| `LintLevel` | A `str` subclass ordering levels; `LintLevel.DENY.is_at_least("warn")` |
+| `LintError` | Raised at `deny`/`forbid`; `LintWarning` at `warn` |
+
+`cfg(feature, *, not_feature=None, test=None)` skips a definition unless the
+named features are enabled, matching `#[cfg(feature = "...")]`. Features are
+turned on with `enable_feature("nightly")`.
+
+---
+
+## Help
+
+`oxide.help` indexes the library by importing it and reading `__all__`, the
+docstrings, and the signatures. It answers the question the README cannot: what
+does this symbol actually do?
+
+```python
+from oxide.help import Help
+
+Help("Vec").summary            # 'A growable array type with push, pop, ...'
+Help("Vec").reference          # 'oxide._collections.Vec'
+Help("Vec").fields             # ('_data', '_capacity')
+Help("Vec").methods            # MethodEntry objects, sorted by name
+Help.module("iter").exports()  # every symbol the module exports
+Help.search("range", limit=3).matches
+Help.overview().usage()        # rendered text for the whole library
+```
+
+Scanning happens once, on first use, and is cached.
+
+| Member | Description |
+|--------|-------------|
+| `Help(topic)` | Describe a symbol, module, or search term |
+| `Help.overview()` | The library as a whole |
+| `Help.module(name)` | Describe a whole module |
+| `Help.search(query, limit=25, in_methods=False)` | Scored search over names and summaries |
+All of the first group are attributes; everything else is a method.
+
+| Member | Kind | Description |
+|--------|------|-------------|
+| `.name` | attribute | The symbol's name |
+| `.kind` | attribute | `symbol`, `module`, or `search` |
+| `.module` | attribute | The module it came from |
+| `.reference` | attribute | Fully qualified path, e.g. `oxide._collections.Vec` |
+| `.summary` / `.description` | attribute | First line, and the whole docstring |
+| `.signature` | attribute | The call signature |
+| `.methods` / `.fields` / `.bases` / `.examples` | attribute | Structure, from docstrings and `__slots__` |
+| `.related` | attribute | Neighbours in the same module |
+| `.siblings()` | method | The rest of the module, sorted |
+| `.exports()` | method | Every symbol this module exports |
+| `.in_module(name)` | method | Every symbol exported by module `name` |
+| `.find(query, limit=25, in_methods=False)` | method | The raw matching entries |
+| `.usage()` | method | Rendered plain text |
+| `.print(stream=None)` | method | Write the rendered help to a stream |
+| `.to_dict()` | method | The same data as JSON-serialisable plain types |
+| `.exists` | attribute | Whether the topic resolved |
+| `Help.module()` / `Help.modules()` / `Help.names()` | classmethod / staticmethod | Module views and the full name index |
+
+| Function | Description |
+|----------|-------------|
+| `Catalog.build(max_methods=200)` | Scan the package and index every public symbol |
+| `catalog(rebuild=False)` | The shared catalog, built on first use |
+| `render_entry` / `render_module` / `render_overview` / `render_search` | Renderers used by `Help` |

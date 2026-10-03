@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-labelledby="title">
+  <title id="title">oxide</title>
+  <desc>A hexagonal crystal ring in rust and amber, with a gem at its core.</desc>
+  <defs>
+    <linearGradient id="oxide-gradient" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F5A623"/>
+      <stop offset="0.5" stop-color="#E2622A"/>
+      <stop offset="1" stop-color="#B32D1B"/>
+    </linearGradient>
+    <mask id="oxide-cut">
+      <rect width="512" height="512" fill="#000000"/>
+      <path d="M256 44 L438 150 L438 362 L256 468 L74 362 L74 150 Z"
+            fill="#ffffff" stroke="#ffffff" stroke-width="22" stroke-linejoin="round"/>
+      <circle cx="256" cy="256" r="98" fill="#000000"/>
+    </mask>
+  </defs>
+  <g mask="url(#oxide-cut)">
+    <rect width="512" height="512" fill="url(#oxide-gradient)"/>
+  </g>
+  <path d="M256 214 L294 256 L256 298 L218 256 Z" fill="url(#oxide-gradient)"/>
+</svg>
