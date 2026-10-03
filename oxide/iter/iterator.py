@@ -10,6 +10,8 @@ convenience, so ``oxide.iter.Range is oxide.Range``.
 """
 from __future__ import annotations
 
+from itertools import chain as _chain
+import operator
 from typing import (
     Any,
     Callable,
@@ -17,11 +19,36 @@ from typing import (
     Iterable,
     Iterator,
     TypeVar,
+    Union,
 )
+
+from ..core.option import Option, Some, None_
+from ..core.result import Result, Ok
 
 T = TypeVar("T")
 U = TypeVar("U")
 V = TypeVar("V")
+
+
+def _length_hint(source: Any) -> tuple[int, int | None]:
+    """Return a (lower, upper) count estimate for an iterator.
+
+    The upper bound is exact only when ``len()`` succeeds. Otherwise
+    ``operator.length_hint`` supplies a lower bound and the upper bound is
+    None: Python generators report a hint of 0 even when they will yield
+    items, so reporting that as an exact count would claim the iterator is
+    empty.
+    """
+    try:
+        n = len(source)
+    except TypeError:
+        pass
+    else:
+        return (n, n)
+    try:
+        return (operator.length_hint(source), None)
+    except TypeError:
+        return (0, None)
 
 
 class Iter(Generic[T]):
@@ -710,6 +737,319 @@ class Iter(Generic[T]):
             if predicate(v):
                 return i
         return None
+
+    def find(self, predicate: Callable[[T], bool]) -> Option[T]:
+        """Return the first element satisfying the predicate, or None_.
+
+        Short-circuits: elements after the first match are left untouched.
+
+        Args:
+            predicate: Function tested against each element.
+
+        Returns:
+            Option[T]: ``Some(matching)`` for the first match, else ``None_``.
+
+        Examples:
+            >>> Iter([1, 2, 3]).find(lambda n: n > 1)
+            Some(2)
+            >>> Iter([1, 2]).find(lambda n: n > 5)
+            None_
+        """
+        for v in self._iter:
+            if predicate(v):
+                return Some(v)
+        return None_
+
+    def find_map(self, predicate: Callable[[T], Union[U, Option[U], None]]) -> Option[U]:
+        """Return the first element for which the mapping produces a value.
+
+        The predicate maps each element; mapping to a value or ``Some(value)``
+        stops the search and returns it, while mapping to ``None`` or
+        ``None_`` keeps going. This is Rust's ``find_map``, which pairs
+        filtering and extraction in one pass.
+
+        Args:
+            predicate: Function returning a mapped value or no value.
+
+        Returns:
+            Option[U]: ``Some(mapped)`` for the first non-None result.
+
+        Examples:
+            >>> Iter([1, 16, 25]).find_map(lambda n: n if n % 4 == 0 else None)
+            Some(16)
+            >>> Iter([1, 16, 25]).find_map(lambda n: Some(n * 10) if n > 20 else None_)
+            Some(250)
+            >>> Iter([1, 2]).find_map(lambda n: None)
+            None_
+        """
+        for v in self._iter:
+            result = predicate(v)
+            if isinstance(result, Option):
+                if result.is_some():
+                    return result
+                continue
+            if result is None:
+                continue
+            return Some(result)  # type: ignore
+        return None_
+
+    @staticmethod
+    def _order(result: Any) -> int:
+        """Normalise a comparator result to a negative/zero/positive integer."""
+        if isinstance(result, int):
+            return result
+        if result.is_less():
+            return -1
+        if result.is_greater():
+            return 1
+        return 0
+
+    def min_by(self, cmp: Callable[[T, T], Any]) -> Option[T]:
+        """Return the smallest element under a custom comparator.
+
+        The comparator returns an ``Ordering`` or a negative/zero/positive
+        int, as ``functools.cmp_to_key`` expects. The first minimum wins.
+
+        Args:
+            cmp: Comparison returning negative when the first is smaller.
+
+        Returns:
+            Option[T]: ``Some(smallest)``, or ``None_`` if empty.
+
+        Examples:
+            >>> Iter([1, 5, 3]).min_by(lambda a, b: a - b)
+            Some(1)
+            >>> Iter(["bb", "a", "ccc"]).min_by(lambda a, b: len(a) - len(b))
+            Some('a')
+        """
+        found: list[T] = []
+        for v in self._iter:
+            if not found or self._order(cmp(v, found[0])) < 0:
+                found = [v]
+        return Some(found[0]) if found else None_
+
+    def max_by(self, cmp: Callable[[T, T], Any]) -> Option[T]:
+        """Return the largest element under a custom comparator.
+
+        The comparator returns an ``Ordering`` or a negative/zero/positive
+        int. The first maximum wins.
+
+        Args:
+            cmp: Comparison returning positive when the first is larger.
+
+        Returns:
+            Option[T]: ``Some(largest)``, or ``None_`` if empty.
+
+        Examples:
+            >>> Iter([1, 5, 3]).max_by(lambda a, b: a - b)
+            Some(5)
+        """
+        found: list[T] = []
+        for v in self._iter:
+            if not found or self._order(cmp(v, found[0])) > 0:
+                found = [v]
+        return Some(found[0]) if found else None_
+
+    def min_by_key(self, key: Callable[[T], U]) -> Option[T]:
+        """Return the smallest element under a key function.
+
+        A single pass, unlike ``Iter(key_list).min()``: the key is computed
+        once per element as needed.
+
+        Args:
+            key: Function computing the sort key of each element.
+
+        Returns:
+            Option[T]: ``Some(smallest)``, or ``None_`` if empty.
+
+        Examples:
+            >>> Iter([100, 5, -20]).min_by_key(abs)
+            Some(5)
+            >>> Iter(["a", "bbb", "cc"]).min_by_key(len)
+            Some('a')
+        """
+        best: list[T] = []
+        best_key: list[Any] = []
+        for v in self._iter:
+            k = key(v)
+            if not best or k < best_key[0]:
+                best, best_key = [v], [k]
+        return Some(best[0]) if best else None_
+
+    def max_by_key(self, key: Callable[[T], U]) -> Option[T]:
+        """Return the largest element under a key function.
+
+        Args:
+            key: Function computing the sort key of each element.
+
+        Returns:
+            Option[T]: ``Some(largest)``, or ``None_`` if empty.
+
+        Examples:
+            >>> Iter([100, 5, -20]).max_by_key(abs)
+            Some(100)
+        """
+        best: list[T] = []
+        best_key: list[Any] = []
+        for v in self._iter:
+            k = key(v)
+            if not best or k > best_key[0]:
+                best, best_key = [v], [k]
+        return Some(best[0]) if best else None_
+
+    def scan(self, init: U, fn: Callable[[U, T], tuple[U, V] | None]) -> Iter[V]:
+        """Produce values while threading state, stopping at the first None.
+
+        The state starts at ``init``; ``fn(state, item)`` returns the next
+        state and the value to yield, or ``None`` to stop iteration.
+
+        Args:
+            init: The initial state.
+            fn: Step function returning ``(new_state, yielded)`` or None.
+
+        Returns:
+            Iter[V]: The produced values, lazily.
+
+        Examples:
+            >>> Iter(["a", "b", "c"]).scan(0, lambda n, s: (n + 1, f"{n}{s}")).collect()
+            ['0a', '1b', '2c']
+            >>> Iter([1, 2, 3]).scan(1, lambda acc, n: None if n > 2 else (acc * n, n)).collect()
+            [1, 2]
+        """
+        def gen() -> Iterator[V]:
+            state = init
+            for item in self._iter:
+                out = fn(state, item)
+                if out is None:
+                    return
+                state, value = out
+                yield value
+
+        return Iter(gen())
+
+    def try_for_each(self, fn: Callable[[T], Result]) -> Result[None, Any]:
+        """Apply a fallible function to each element, stopping at the first Err.
+
+        Args:
+            fn: Function returning ``Ok(None)``-style success or an ``Err``.
+
+        Returns:
+            Result: ``Ok(None)`` if every element succeeded, else the first
+                ``Err`` and the remaining elements are left unprocessed.
+
+        Examples:
+            >>> from oxide import Ok, Err
+            >>> Iter([1, 2, 3]).try_for_each(lambda n: Ok(None))
+            Ok(value=None)
+            >>> Iter([1, 0]).try_for_each(lambda n: Ok(None) if n else Err("zero"))
+            Err(error='zero')
+        """
+        for v in self._iter:
+            result = fn(v)
+            if result.is_err():
+                return result
+        return Ok(None)
+
+    def rev(self) -> Iter[T]:
+        """Return this iterator traversed back to front.
+
+        Uses the source's reverse view when it has one (list, tuple, str,
+        range, deque); otherwise the elements are buffered first, since a
+        plain Python generator cannot be reversed cheaply.
+
+        Returns:
+            Iter[T]: The elements in reverse order, lazily where possible.
+
+        Examples:
+            >>> Iter([1, 2, 3]).rev().collect()
+            [3, 2, 1]
+            >>> Iter("abc").rev().collect()
+            ['c', 'b', 'a']
+        """
+        source = self._iter
+        try:
+            return Iter(reversed(source))  # type: ignore
+        except TypeError:
+            return Iter(reversed(list(source)))
+
+    def copied(self) -> Iter[T]:
+        """Return an equivalent iterator, mirroring Rust's ``copied``.
+
+        Rust's ``copied`` turns ``Iterator<Item = &T>`` into ``Iterator<Item = T>``;
+        Python has no references, so this is an identity adapter kept for
+        naming parity with Rust.
+
+        Returns:
+            Iter[T]: The same elements.
+
+        Examples:
+            >>> Iter([1, 2]).copied().collect()
+            [1, 2]
+        """
+        return Iter(self._iter)
+
+    def cloned(self) -> Iter[T]:
+        """Return an equivalent iterator, mirroring Rust's ``cloned``.
+
+        As with :meth:`copied`, this exists for naming parity: Python already
+        yields owned values rather than references.
+
+        Returns:
+            Iter[T]: The same elements.
+
+        Examples:
+            >>> Iter([1, 2]).cloned().collect()
+            [1, 2]
+        """
+        return Iter(self._iter)
+
+    def is_empty(self) -> bool:
+        """Return True if the iterator has no elements.
+
+        Does not lose an element: a peeked value is pushed back in front of
+        the remaining ones. Uses the length hint when the source knows it.
+
+        Returns:
+            bool: True if nothing is left to iterate.
+
+        Examples:
+            >>> Iter([]).is_empty()
+            True
+            >>> Iter([1, 2]).is_empty()
+            False
+            >>> it = Iter([1, 2])
+            >>> it.is_empty()
+            False
+            >>> it.collect()
+            [1, 2]
+        """
+        source = self._iter
+        try:
+            return len(source) == 0  # type: ignore
+        except TypeError:
+            pass
+        try:
+            first = next(source)
+        except StopIteration:
+            return True
+        self._iter = _chain([first], source)
+        return False
+
+    def size_hint(self) -> tuple[int, int | None]:
+        """Return ``(lower, upper)`` bounds on the remaining element count.
+
+        The upper bound is None when it cannot be known cheaply.
+
+        Returns:
+            tuple[int, int | None]: ``(lower_bound, upper_bound_or_None)``.
+
+        Examples:
+            >>> Iter([1, 2, 3]).size_hint()
+            (3, None)
+            >>> Iter(n for n in range(10)).size_hint()
+            (0, None)
+        """
+        return _length_hint(self._iter)
 
     def nth(self, n: int) -> T | None:
         """Return the element at index n, or None if the iterator is too short.
