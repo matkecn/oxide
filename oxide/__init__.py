@@ -67,12 +67,12 @@ from .core.convert import (
 from .core.error import Error, Backtrace, Location, context
 
 from ._collections.vec import Vec
-from ._collections.hashmap import HashMap, Entry, OccupiedEntry, VacantEntry
+from ._collections.hashmap import HashMap, Entry, MutableValue, OccupiedEntry, VacantEntry
 from ._collections.hashset import HashSet
 from ._collections.btreemap import BTreeMap
 from ._collections.btreeset import BTreeSet
 from ._collections.vecdeque import VecDeque
-from ._collections.binary_heap import BinaryHeap
+from ._collections.binary_heap import BinaryHeap, HeapPeekMut
 from ._collections.linked_list import LinkedList
 from ._collections.extra import Drain, IntoIter, Slice
 
@@ -197,8 +197,8 @@ __all__ = [
     # core.error
     "Error", "Backtrace", "Location", "context",
     # collections
-    "Vec", "HashMap", "Entry", "OccupiedEntry", "VacantEntry",
-    "HashSet", "BTreeMap", "BTreeSet", "VecDeque", "BinaryHeap",
+    "Vec", "HashMap", "Entry", "OccupiedEntry", "VacantEntry", "MutableValue",
+    "HashSet", "BTreeMap", "BTreeSet", "VecDeque", "BinaryHeap", "HeapPeekMut",
     "LinkedList", "Drain", "IntoIter", "Slice",
     # iter
     "Iter", "Enumerate", "Zip", "Map", "FilterIter", "FilterMap", "FlatMap", "Flatten",

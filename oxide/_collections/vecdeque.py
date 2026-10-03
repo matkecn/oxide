@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from typing import Generic, Iterable, Iterator, TypeVar
 
+from ..core.option import Option, Some, None_
 from .extra import Drain
 
 T = TypeVar("T")
@@ -25,7 +26,7 @@ class VecDeque(Generic[T]):
         >>> d = VecDeque([1, 2, 3])
         >>> d.push_front(0)
         >>> d.pop_back()
-        3
+        Some(3)
         >>> list(d.iter())
         [0, 1, 2]
     """
@@ -115,35 +116,39 @@ class VecDeque(Generic[T]):
         """
         self._data.insert(0, value)
 
-    def pop_back(self) -> T | None:
-        """Remove and return the back element, or None if empty.
+    def pop_back(self) -> Option[T]:
+        """Remove and return the back element.
 
         Returns:
-            T | None: The last element, or None if the deque is empty.
+            Option[T]: ``Some(last)``, or ``None_`` if the deque is empty.
 
         Examples:
             >>> d = VecDeque([1, 2])
             >>> d.pop_back()
-            2
+            Some(2)
+            >>> VecDeque().pop_back()
+            None_
         """
         if self._data:
-            return self._data.pop()
-        return None
+            return Some(self._data.pop())
+        return None_
 
-    def pop_front(self) -> T | None:
-        """Remove and return the front element, or None if empty.
+    def pop_front(self) -> Option[T]:
+        """Remove and return the front element.
 
         Returns:
-            T | None: The first element, or None if the deque is empty.
+            Option[T]: ``Some(first)``, or ``None_`` if the deque is empty.
 
         Examples:
             >>> d = VecDeque([1, 2])
             >>> d.pop_front()
-            1
+            Some(1)
+            >>> VecDeque().pop_front()
+            None_
         """
         if self._data:
-            return self._data.pop(0)
-        return None
+            return Some(self._data.pop(0))
+        return None_
 
     def front(self) -> T | None:
         """Return a reference to the front element, or None if empty.

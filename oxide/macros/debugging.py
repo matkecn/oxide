@@ -48,6 +48,17 @@ class Formatter:
         """
         self._buf.append(s)
 
+    def write(self, s: str) -> None:  # type: ignore
+        """Append a string to the buffer.
+
+        The alias :func:`write_` looks for, so a formatter can be used as a
+        write destination directly.
+
+        Args:
+            s: The string to append.
+        """
+        self._buf.append(s)
+
     def write_char(self, c: str) -> None:  # type: ignore
         """Append a single character to the buffer.
 
@@ -108,17 +119,46 @@ def format_(template: str, *args: Any, **kwargs: Any) -> str:
     return template.format(*args, **kwargs)
 
 
+def _write_into(buf: Any, text: str) -> None:
+    """Append text to a destination, whatever kind of destination it is.
+
+    Args:
+        buf: An object exposing ``write``, ``write_str``, or ``append``.
+        text: The text to append.
+
+    Raises:
+        TypeError: The destination exposes none of the accepted methods. This
+            used to be silent, which discarded the formatted output entirely.
+    """
+    if hasattr(buf, "write"):
+        buf.write(text)
+    elif hasattr(buf, "write_str"):
+        buf.write_str(text)
+    elif hasattr(buf, "append"):
+        buf.append(text)
+    else:
+        raise TypeError(
+            "write destination must provide write(), write_str(), or append(); "
+            f"got {type(buf).__name__}"
+        )
+
+
 def write_(buf: Any, template: str, *args: Any, **kwargs: Any) -> None:
     """Write a formatted string into a buffer-like object.
 
-    Supports any object with a ``write`` method (e.g. file-like objects) or an
-    ``append`` method (e.g. lists and :class:`Formatter` buffers).
+    Supports any object with a ``write`` method (e.g. file-like objects), a
+    ``write_str`` method (:class:`Formatter`), or an ``append`` method (e.g.
+    lists).
 
     Args:
-        buf: The destination buffer; must expose ``write`` or ``append``.
+        buf: The destination buffer.
         template: A format string.
         *args: Positional values for the template.
         **kwargs: Keyword values for the template.
+
+    Raises:
+        TypeError: The destination exposes none of ``write``, ``write_str``, or
+            ``append``.
 
     Example:
         >>> from oxide.macros import write_
@@ -126,12 +166,13 @@ def write_(buf: Any, template: str, *args: Any, **kwargs: Any) -> None:
         >>> write_(out, "x={}", 42)
         >>> out
         ['x=42']
+        >>> from oxide.macros import Formatter
+        >>> f = Formatter()
+        >>> write_(f, "x={}", 42)
+        >>> f.finish()
+        'x=42'
     """
-    formatted = template.format(*args, **kwargs)
-    if hasattr(buf, 'write'):
-        buf.write(formatted)
-    elif hasattr(buf, 'append'):
-        buf.append(formatted)
+    _write_into(buf, template.format(*args, **kwargs))
 
 
 def writeln_(buf: Any, template: str = "", *args: Any, **kwargs: Any) -> None:
@@ -140,10 +181,14 @@ def writeln_(buf: Any, template: str = "", *args: Any, **kwargs: Any) -> None:
     If no template is given, only a newline is written.
 
     Args:
-        buf: The destination buffer; must expose ``write`` or ``append``.
+        buf: The destination buffer.
         template: An optional format string. Defaults to an empty string.
         *args: Positional values for the template.
         **kwargs: Keyword values for the template.
+
+    Raises:
+        TypeError: The destination exposes none of ``write``, ``write_str``, or
+            ``append``.
 
     Example:
         >>> from oxide.macros import writeln_
@@ -153,10 +198,7 @@ def writeln_(buf: Any, template: str = "", *args: Any, **kwargs: Any) -> None:
         ['hi!\\n']
     """
     formatted = template.format(*args, **kwargs) if template else ""
-    if hasattr(buf, 'write'):
-        buf.write(formatted + "\n")
-    elif hasattr(buf, 'append'):
-        buf.append(formatted + "\n")
+    _write_into(buf, formatted + "\n")
 
 
 def dbg_(*args: Any) -> Any:

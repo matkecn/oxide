@@ -593,23 +593,26 @@ class Vec(Generic[T]):
 
         return None_
 
-    def reverse(self) -> None:
+    def reverse(self) -> Vec[T]:
         """Reverse the order of elements in place.
+
+        Returns:
+            The same Vec, so the call can be chained.
 
         Examples:
             >>> v = Vec([1, 2, 3])
             >>> v.reverse()
-            >>> v
             Vec([3, 2, 1])
         """
         self._data.reverse()
+        return self
 
     def sort(
         self,
         *,
         key: Callable[[T], Any] | None = None,
         reverse: bool = False,
-    ) -> None:
+    ) -> Vec[T]:
         """Sort the elements in place using a stable sort.
 
         Args:
@@ -617,23 +620,28 @@ class Vec(Generic[T]):
                 comparison key from each element.
             reverse (bool): If True, sort in descending order.
 
+        Returns:
+            The same Vec, so the call can be chained.
+
         Examples:
             >>> v = Vec([3, 1, 2])
             >>> v.sort()
-            >>> v
             Vec([1, 2, 3])
+            >>> Vec([3, 1, 2]).sort().reverse()
+            Vec([3, 2, 1])
         """
         self._data.sort(
             key=key,
             reverse=reverse,
         )
+        return self
 
     def sort_unstable(
         self,
         *,
         key: Callable[[T], Any] | None = None,
         reverse: bool = False,
-    ) -> None:
+    ) -> Vec[T]:
         """Sort the elements in place using an unstable sort.
 
         Provided for API parity with Rust. The underlying implementation uses a
@@ -647,28 +655,30 @@ class Vec(Generic[T]):
         Examples:
             >>> v = Vec([3, 1, 2])
             >>> v.sort_unstable()
-            >>> v
             Vec([1, 2, 3])
         """
         self._data.sort(
             key=key,
             reverse=reverse,
         )
+        return self
 
     def retain(
         self,
         predicate: Callable[[T], bool],
-    ) -> None:
+    ) -> Vec[T]:
         """Keep only elements for which the predicate returns True.
 
         Args:
             predicate (Callable[[T], bool]): A function returning True for
                 elements to keep.
 
+        Returns:
+            The same Vec, so the call can be chained.
+
         Examples:
             >>> v = Vec([1, 2, 3, 4])
             >>> v.retain(lambda x: x % 2 == 0)
-            >>> v
             Vec([2, 4])
         """
         self._data[:] = [
@@ -676,21 +686,26 @@ class Vec(Generic[T]):
             for value in self._data
             if predicate(value)
         ]
+        return self
 
-    def dedup(self) -> None:
+    def dedup(self) -> Vec[T]:
         """Remove consecutive duplicate elements from the Vec.
 
         Keeps the first occurrence of each run of equal adjacent elements, in
         place.
 
+        Returns:
+            The same Vec, so the call can be chained.
+
         Examples:
             >>> v = Vec([1, 1, 2, 2, 2, 3])
             >>> v.dedup()
-            >>> v
             Vec([1, 2, 3])
+            >>> Vec([1]).dedup()
+            Vec([1])
         """
         if len(self._data) < 2:
-            return
+            return self
 
         result = [self._data[0]]
 
@@ -699,21 +714,27 @@ class Vec(Generic[T]):
                 result.append(value)
 
         self._data[:] = result
+        return self
 
-    def append(self, other: Vec[T]) -> None:
-        """Append all elements from another Vec to this one.
+    def append(self, other: Iterable[T]) -> None:
+        """Append all elements from another Vec or iterable to this one.
+
+        Accepts any iterable, not just a Vec: a list, a generator, or another
+        Vec all work.
 
         Args:
-            other (Vec[T]): The Vec whose elements are appended to the end.
+            other (Iterable[T]): The values appended to the end.
 
         Examples:
             >>> a = Vec([1, 2])
             >>> a.append(Vec([3, 4]))
             >>> a
             Vec([1, 2, 3, 4])
+            >>> a.append([5])
+            >>> a
+            Vec([1, 2, 3, 4, 5])
         """
-        self.reserve(other.len())
-        self._data.extend(other._data)
+        self.extend(other)
 
     def extend(
         self,

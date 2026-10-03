@@ -7,9 +7,83 @@ peek, and bulk-conversion operations.
 """
 from __future__ import annotations
 
-from typing import Generic, Iterable, Iterator, TypeVar
+from typing import Any, Generic, Iterable, Iterator, TypeVar
 
 T = TypeVar("T")
+
+
+class HeapPeekMut(Generic[T]):
+    """Mutable access to the top element of a :class:`BinaryHeap`.
+
+    Rust hands out ``PeekMut`` from ``BinaryHeap::peek_mut`` so the top element
+    can be changed in place; this is the same idea. Use it as a context
+    manager, and the heap restores its order on exit:
+
+    Examples:
+        >>> h = BinaryHeap([1, 3, 2])
+        >>> with h.peek_mut() as top:
+        ...     _ = top.value
+        ...     top.value = 99
+        >>> h.pop()
+        99
+
+    Lowering the top instead lets another element take its place:
+        >>> h = BinaryHeap([1, 3, 2])
+        >>> with h.peek_mut() as top:
+        ...     top.value = 0
+        >>> h.pop()
+        2
+
+    Named ``HeapPeekMut`` because :mod:`oxide.iter` already exports a
+    ``PeekMut`` for ``Peekable``.
+    """
+
+    __slots__ = ("_heap", "_value", "_active")
+
+    def __init__(self, heap: BinaryHeap[T]) -> None:
+        """Wrap the heap's current top element.
+
+        Args:
+            heap: The heap whose top element is exposed.
+        """
+        self._heap = heap
+        self._value: T = heap._data[0]
+        self._active = True
+
+    @property
+    def value(self) -> T:
+        """Return the top element.
+
+        Returns:
+            T: The value currently held by the guard.
+        """
+        return self._value
+
+    @value.setter
+    def value(self, value: T) -> None:
+        """Replace the top element; the heap is fixed up when the guard closes.
+
+        Args:
+            value: The new value for the top of the heap.
+        """
+        self._value = value
+
+    def sift(self) -> None:
+        """Write the value back to the heap and restore heap order."""
+        if self._active:
+            self._heap._data[0] = self._value
+            self._heap._data.sort(reverse=not self._heap._reverse)
+            self._active = False
+
+    def __enter__(self) -> HeapPeekMut[T]:
+        return self
+
+    def __exit__(self, *exc: Any) -> bool:
+        self.sift()
+        return False
+
+    def __repr__(self) -> str:
+        return f"HeapPeekMut({self._value!r})"
 
 
 class BinaryHeap(Generic[T]):
@@ -168,16 +242,28 @@ class BinaryHeap(Generic[T]):
         self.push(push_value)
         return self.pop()  # type: ignore
 
-    def peek_mut(self) -> T | None:
+    def peek_mut(self) -> HeapPeekMut[T] | None:
         """Return a mutable reference to the top element without removing it.
 
-        This is an alias of :meth:`peek`; it does not actually provide a mutable
-        reference.
+        The heap re-orders itself when the guard is closed, so the new value
+        may move away from the top. Returns None if the heap is empty.
 
         Returns:
-            T | None: The top element, or None if the heap is empty.
+            HeapPeekMut[T] | None: A guard over the top element, or None.
+
+        Examples:
+            >>> h = BinaryHeap([1, 3, 2])
+            >>> with h.peek_mut() as top:
+            ...     _ = top.value
+            ...     top.value = 99
+            >>> h.pop()
+            99
+            >>> BinaryHeap().peek_mut() is None
+            True
         """
-        return self.peek()
+        if not self._data:
+            return None
+        return HeapPeekMut(self)
 
     def len(self) -> int:
         """Return the number of elements in the heap.

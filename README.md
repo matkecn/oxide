@@ -608,7 +608,9 @@ Iter([1, 2, 3]).any(lambda n: n > 2), Iter([1]).all(lambda n: n > 0)  # (True, T
 Iter([1, 2, 3]).position(lambda n: n == 2)                    # 1
 
 # multi-iterable adapters
-Iter.chain([1, 2], [3], [4, 5]).collect()     # [1, 2, 3, 4, 5]
+Iter.chain_of([1, 2], [3], [4, 5]).collect()  # [1, 2, 3, 4, 5]
+Iter([1, 2]).chain([3, 4]).collect()            # [1, 2, 3, 4]
+Iter([1, 2]).zip([10, 20]).collect()             # [(1, 10), (2, 20)]
 Iter([1, 2]).zip_with([10, 20], lambda a, b: a + b).collect()  # [11, 22]
 Iter("ab").enumerate().collect()              # [(0, 'a'), (1, 'b')]
 Iter([1, 2, 3, 4]).step_by(2).collect()       # [1, 3]
@@ -633,11 +635,16 @@ Adapters available as standalone classes/constructors: `Map`, `FilterIter`,
 `Skip`, `Rev`, `Inspect`, `Copied`, `Cloned`, `Partition`, `Peekable`, `PeekMut`,
 `Fuse`.
 
-> `Iter.chain(...)`, `Iter.enumerate(...)` and `Iter.repeat(iterable)` are
-> **classmethods** — call them on `Iter`, not on an instance. `repeat` cycles its
-> argument **forever**, so always bound it with `take(...)`/`skip(...)`.
-> `Iter.rev()` does not exist; use `oxide.iter.rev(iterable)` or
-> `iterable[::-1]`.
+> `Iter.from_fn`, `Iter.repeat(iterable)`, `Iter.range(start, step)`,
+> `Iter.chain_of(...)` and `Iter.zip_of(a, b)` are **classmethods** — call them on
+> `Iter`, not on an instance. `repeat` cycles its argument **forever**, so always
+> bound it with `take(...)`/`skip(...)`. `Iter.rev()` does not exist; use
+> `oxide.iter.rev(iterable)` or `iterable[::-1]`.
+>
+> `chain` and `zip` are the *instance* adapters (`it.chain(other)`,
+> `it.zip(other)`); the multi-argument constructors are `chain_of` and `zip_of`.
+> `count` is Rust's consuming method (how many items remain), so the infinite
+> counter is `range`.
 
 > **Chains are single-use.** Terminal calls (`collect`, `count`, `sum`, `max`,
 > `min`, `for_each`, …) drain the underlying iterator, so a second call on the same

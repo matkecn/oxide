@@ -432,7 +432,7 @@ from oxide import Range, RangeInclusive, RangeFrom, RangeTo, RangeToInclusive, R
 | `RangeFrom(start)` | `start..` | Open-ended start |
 | `RangeTo(end)` | `..end` | Open-ended end |
 | `RangeToInclusive(end)` | `..=end` | Open-ended end inclusive |
-| `RangeFull` | `..` | Full range (everything) |
+| `RangeFull` | `..` | Full range (everything); contains-only, not iterable |
 
 | Method | Description |
 |--------|-------------|
@@ -512,11 +512,12 @@ from oxide import Vec
 | `contains(value)` | `-> bool` | Check membership |
 | `position(predicate)` | `-> Option[int]` | Find index of first match |
 | `find(predicate)` | `-> Option[T]` | Find first match |
-| `reverse()` | `-> None` | Reverse elements |
-| `sort(key, reverse)` | `-> None` | Sort elements |
-| `retain(predicate)` | `-> None` | Keep matching elements |
-| `dedup()` | `-> None` | Remove consecutive duplicates |
-| `append(other)` | `-> None` | Append another vec |
+| `reverse()` | `-> Vec[T]` | Reverse elements, returns self (chainable) |
+| `sort(key, reverse)` | `-> Vec[T]` | Sort elements, returns self (chainable) |
+| `sort_unstable(key, reverse)` | `-> Vec[T]` | Sort without extra space, returns self (chainable) |
+| `retain(predicate)` | `-> Vec[T]` | Keep matching elements, returns self (chainable) |
+| `dedup()` | `-> Vec[T]` | Remove consecutive duplicates, returns self (chainable) |
+| `append(other)` | `-> None` | Append another vec or any iterable |
 | `extend(values)` | `-> None` | Extend with iterable |
 | `split_off(at)` | `-> Vec[T]` | Split at index |
 | `iter()` | `-> Iterator[T]` | Get iterator |
@@ -689,8 +690,8 @@ from oxide import VecDeque
 | `from_iter(values)` | Class method | Create from iterable |
 | `push_back(value)` | `-> None` | Add to back |
 | `push_front(value)` | `-> None` | Add to front |
-| `pop_back()` | `-> T \| None` | Remove from back |
-| `pop_front()` | `-> T \| None` | Remove from front |
+| `pop_back()` | `-> Option[T]` | Remove from back |
+| `pop_front()` | `-> Option[T]` | Remove from front |
 | `front()` | `-> T \| None` | Peek at front |
 | `back()` | `-> T \| None` | Peek at back |
 | `get(index)` | `-> T \| None` | Get by index |
@@ -718,6 +719,7 @@ from oxide import BinaryHeap
 | `push(value)` | `-> None` | Add element |
 | `pop()` | `-> T \| None` | Remove and return maximum |
 | `peek()` | `-> T \| None` | Peek at maximum |
+| `peek_mut()` | `-> HeapPeekMut[T] \| None` | Mutable access to the top; heap re-orders on close |
 | `push_pop(value)` | `-> T` | Push then pop maximum |
 | `contains(value)` | `-> bool` | Check membership |
 | `drain()` | `-> Iterator[T]` | Remove and iterate in order |
@@ -739,8 +741,8 @@ from oxide import LinkedList
 | `from_iter(values)` | Class method | Create from iterable |
 | `push_front(value)` | `-> None` | Add to front |
 | `push_back(value)` | `-> None` | Add to back |
-| `pop_front()` | `-> T \| None` | Remove from front |
-| `pop_back()` | `-> T \| None` | Remove from back |
+| `pop_front()` | `-> Option[T]` | Remove from front |
+| `pop_back()` | `-> Option[T]` | Remove from back |
 | `front()` | `-> T \| None` | Peek at front |
 | `back()` | `-> T \| None` | Peek at back |
 | `contains(value)` | `-> bool` | Check membership |
@@ -769,15 +771,18 @@ from oxide import Iter
 Iter([1, 2, 3])                          # From any iterable
 Iter.from_fn(lambda i: i * 2, start=0).take(4).collect()   # [0, 2, 4, 6]
 Iter.repeat([1, 2]).take(5).collect()    # cycles the iterable FOREVER
-Iter.chain([1, 2], [3]).collect()        # [1, 2, 3]
-Iter.zip([1, 2], ["a", "b"]).collect()   # [(1, 'a'), (2, 'b')]
+Iter.chain_of([1, 2], [3]).collect()     # [1, 2, 3]
+Iter.zip_of([1, 2], ["a", "b"]).collect()  # [(1, 'a'), (2, 'b')]
+Iter([1, 2]).chain([3]).collect()        # [1, 2, 3]
+Iter([1, 2]).zip(["a", "b"]).collect()   # [(1, 'a'), (2, 'b')]
 ```
 
-> `from_fn`, `repeat`, `chain` and `zip` are callable directly on the `Iter`
-> class; `repeat` cycles forever, so always bound it with `take(...)`.
-> There is no `Iter.range(...)` — use `Iter(range_(1, 5))`.
-> Beware `count`: `Iter([1, 2, 3]).count()` is a *consumer* returning the number
-> of remaining items, and there is no infinite-counter classmethod.
+> `from_fn`, `repeat(iterable)`, `range(start, step)`, `chain_of(...)` and
+> `zip_of(a, b)` are callable directly on the `Iter` class; `repeat` cycles
+> forever, so always bound it with `take(...)`. For a plain ascending range use
+> `Iter(range_(1, 5))` or `Iter.range(1).take(4)`.
+> `chain` and `zip` are the *instance* adapters; `count` is Rust's consuming
+> method returning the number of remaining items.
 
 #### Adapter Methods
 

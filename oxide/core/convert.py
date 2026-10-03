@@ -519,12 +519,19 @@ class RangeToInclusive(Generic[T]):
 class RangeFull:
     """A range that covers all values, equivalent to Rust's ..
 
-    An unbounded range that contains every value. It has no iteration support
-    since no finite bounds exist.
+    An unbounded range that contains every value. Like Rust, it is *not*
+    iterable and has no length: there are no finite bounds, so there is nothing
+    meaningful to enumerate or count. Use :meth:`contains` (or ``in``) to test
+    membership, and use :class:`Range` or :class:`RangeInclusive` when you need
+    an iterable range.
 
-    Example:
+    Examples:
         >>> 42 in RangeFull()
         True
+        >>> RangeFull().contains("anything")
+        True
+        >>> hasattr(RangeFull(), "__iter__")
+        False
     """
 
     __slots__ = ()

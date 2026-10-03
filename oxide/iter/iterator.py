@@ -97,8 +97,11 @@ class Iter(Generic[T]):
         return cls(gen())
 
     @classmethod
-    def count(cls, start: int = 0, step: int = 1) -> Iter[int]:
+    def range(cls, start: int = 0, step: int = 1) -> Iter[int]:
         """Create an infinite counting iterator from start with given step.
+
+        Named ``range`` rather than ``count`` because :meth:`count` is Rust's
+        consuming method, which counts the elements already in the iterator.
 
         Args:
             start: The first value to yield. Defaults to 0.
@@ -108,7 +111,7 @@ class Iter(Generic[T]):
             An infinite Iter of ``start, start + step, start + 2 * step, ...``.
 
         Examples:
-            >>> Iter.count(5, 5).take(4).collect()
+            >>> Iter.range(5, 5).take(4).collect()
             [5, 10, 15, 20]
         """
         def gen():
@@ -119,8 +122,10 @@ class Iter(Generic[T]):
         return cls(gen())
 
     @classmethod
-    def zip(cls, a: Iterable[T], b: Iterable[U]) -> Iter[tuple[T, U]]:
+    def zip_of(cls, a: Iterable[T], b: Iterable[U]) -> Iter[tuple[T, U]]:
         """Create an iterator yielding paired tuples from two iterables.
+
+        The instance form is :meth:`zip`; this is the two-argument constructor.
 
         Iteration stops once the shorter iterable is exhausted.
 
@@ -132,14 +137,16 @@ class Iter(Generic[T]):
             An Iter of ``(x, y)`` tuples pairing elements of a and b.
 
         Examples:
-            >>> Iter.zip([1, 2], ["a", "b"]).collect()
+            >>> Iter.zip_of([1, 2], ["a", "b"]).collect()
             [(1, 'a'), (2, 'b')]
         """
         return cls(zip(a, b))
 
     @classmethod
-    def chain(cls, *iters: Iterable[T]) -> Iter[T]:
+    def chain_of(cls, *iters: Iterable[T]) -> Iter[T]:
         """Chain multiple iterables into a single sequential iterator.
+
+        The instance form is :meth:`chain`; this is the variadic constructor.
 
         Args:
             iters: One or more iterables to concatenate in order.
@@ -148,13 +155,50 @@ class Iter(Generic[T]):
             An Iter yielding every element of each iterable in sequence.
 
         Examples:
-            >>> Iter.chain([1, 2], [3], [4, 5]).collect()
+            >>> Iter.chain_of([1, 2], [3], [4, 5]).collect()
             [1, 2, 3, 4, 5]
         """
         def gen():
             for it in iters:
                 yield from it
         return cls(gen())
+
+    def zip(self, other: Iterable[U]) -> Iter[tuple[T, U]]:
+        """Pair this iterator's elements with another iterable's.
+
+        Iteration stops once either side is exhausted.
+
+        Args:
+            other: The iterable to pair with.
+
+        Returns:
+            A new lazy Iter of ``(self_value, other_value)`` pairs.
+
+        Examples:
+            >>> Iter([1, 2, 3]).zip("abc").collect()
+            [(1, 'a'), (2, 'b'), (3, 'c')]
+            >>> Iter([1, 2, 3]).zip("a").collect()
+            [(1, 'a')]
+        """
+        return Iter(zip(self._iter, other))
+
+    def chain(self, others: Iterable[T]) -> Iter[T]:
+        """Return an iterator over this one's elements then another's.
+
+        Args:
+            others: The iterable to append after this one.
+
+        Returns:
+            A new lazy Iter yielding every element of self, then of others.
+
+        Examples:
+            >>> Iter([1, 2]).chain([3, 4]).collect()
+            [1, 2, 3, 4]
+        """
+        def gen():
+            yield from self._iter
+            yield from others
+        return Iter(gen())
 
     def map(self, fn: Callable[[T], U]) -> Iter[U]:
         """Apply a function to each element and return a new iterator of results.
