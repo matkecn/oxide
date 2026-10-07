@@ -148,6 +148,10 @@ from .ownership import (
     Lifetime, LifetimeRef, LifetimeError,
     RAII, raii,
 )
+try:
+    from .cache import LRUCache, LFUCache, TTLCache
+except Exception:
+    LRUCache = LFUCache = TTLCache = None  # type: ignore[assignment]
 
 
 from .filter import Filter, FilterError
@@ -252,6 +256,8 @@ __all__ = [
     "Borrowed", "BorrowedMut",
     "Lifetime", "LifetimeRef", "LifetimeError",
     "RAII", "raii",
+    # cache
+    "LRUCache", "LFUCache", "TTLCache",
     # filter
     "Filter", "FilterError",
     # regex
