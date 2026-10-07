@@ -141,12 +141,15 @@ from .macros.panic import panic, todo, unimplemented, ScopeGuard, defer
 from .other import (
     Ordering, ControlFlow, Reverse, Wrapping, Saturating, NonZero,
     SmallVec, ArrayVec, TinyVec, BitVec, BitFlags, CreateMeta,
+<<<<<<< HEAD
 )
 from .ownership import (
     Owner, own, Move, move_, MovedError,
     Borrowed, BorrowedMut,
     Lifetime, LifetimeRef, LifetimeError,
     RAII, raii,
+=======
+>>>>>>> fd299b439d408b400cd8c740d168c0274f162f1a
 )
 
 from .filter import Filter, FilterError

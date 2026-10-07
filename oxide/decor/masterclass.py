@@ -341,6 +341,65 @@ def mastermethod(target: F | None = None) -> Any:
         return decorate
     return decorate(target)
 
+def mastermethod(target: F | None = None) -> Any:
+    """Combine ``classmethod`` and ``staticmethod`` into one method.
+
+    The wrapped function is called with the class first and the instance second.
+    When the method is reached through the class rather than an instance, the
+    instance argument is ``None``.
+
+    Usable bare or called, so ``@mastermethod`` and ``@mastermethod()`` both work.
+
+    Args:
+        target: The function to decorate, or ``None`` when used as
+            ``@mastermethod()``.
+
+    Returns:
+        MasterMethod: The descriptor, or a decorator producing one.
+
+    Raises:
+        TypeError: If ``target`` is given and is not callable, or if it is
+            already a ``staticmethod`` or ``classmethod``, whose binding would
+            be silently discarded.
+
+    Example:
+        >>> from oxide.decor import mastermethod
+        >>> class Builder:
+        ...     def __init__(self, parts):
+        ...         self.parts = parts
+        ...     @mastermethod
+        ...     def size(cls, self):
+        ...         return 0 if self is None else len(self.parts)
+        >>> Builder(["a", "b"]).size()
+        2
+        >>> Builder.size()
+        0
+        >>> Builder.__dict__["size"].__doc__ is None
+        True
+        >>> repr(Builder.__dict__["size"])
+        '<mastermethod Builder.size>'
+    """
+
+    def decorate(func: F) -> MasterMethod[F]:
+        """Wrap one function in a MasterMethod.
+
+        Args:
+            func: The function to wrap.
+
+        Returns:
+            MasterMethod: The descriptor for it.
+        """
+        if isinstance(func, (staticmethod, classmethod)):
+            raise TypeError(
+                "masterclass cannot wrap a staticmethod or classmethod; "
+                f"unwrap it first, got {type(func).__name__}"
+            )
+        return MasterMethod(func)
+
+    if target is None:
+        return decorate
+    return decorate(target)
+
 
 def is_master(target: Any) -> bool:
     """Return whether a value is a combined class/instance method.
