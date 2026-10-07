@@ -253,6 +253,50 @@ class Option(Generic[T]):
                 return self
         return None_
 
+    def is_some_and(self, predicate: Callable[[T], bool]) -> bool:
+        """Return true if the option is Some and the predicate returns true.
+
+        Args:
+            predicate: Function to test the inner value.
+
+        Returns:
+            bool: True if Some and predicate matches.
+
+        Example:
+            >>> Some(2).is_some_and(lambda x: x % 2 == 0)
+            True
+            >>> Some(3).is_some_and(lambda x: x % 2 == 0)
+            False
+            >>> None_.is_some_and(lambda x: True)
+            False
+        """
+        if isinstance(self, Some):
+            return predicate(self.value)
+        return False
+
+    def is_none_or(self, predicate: Callable[[T], bool]) -> bool:
+        """Return true if the option is None or the predicate returns true.
+
+        Args:
+            predicate: Function to test the inner value.
+
+        Returns:
+            bool: True if None or predicate matches.
+
+        Example:
+            >>> Some(2).is_none_or(lambda x: x % 2 == 0)
+            True
+            >>> Some(3).is_none_or(lambda x: x % 2 == 0)
+            False
+            >>> None_.is_none_or(lambda x: False)
+            True
+        """
+        if type(self) is type(None_):
+            return True
+        if isinstance(self, Some):
+            return predicate(self.value)
+        return False
+
     def inspect(
         self,
         fn: Callable[[T], Any],
@@ -273,6 +317,37 @@ class Option(Generic[T]):
         if isinstance(self, Some):
             fn(self.value)
         return self
+
+    def expect(self, message: str) -> T:
+        """Return the contained value or panic with given message.
+
+        Args:
+            message: The message to use if None.
+
+        Returns:
+            T: The contained value.
+
+        Raises:
+            RuntimeError: If the option is None.
+        """
+        if isinstance(self, Some):
+            return self.value
+        raise RuntimeError(message)
+
+    def expect_err(self, message: str) -> None:
+        """Unwrap None, panicking if the value is Some.
+
+        Args:
+            message: The message to use if Some.
+
+        Raises:
+            RuntimeError: If the option is Some.
+        """
+        if type(self) is type(None_):
+            return None
+        if isinstance(self, Some):
+            raise RuntimeError(message)
+        return None
 
     def __bool__(self) -> bool:
         """Return True if this Option holds a Some value.

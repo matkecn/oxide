@@ -313,6 +313,44 @@ class Result(Generic[T, E]):
             return Some(self.error)
         return None_
 
+    def is_ok_and(self, predicate: Callable[[T], bool]) -> bool:
+        """Return true if Result is Ok and predicate returns true.
+
+        Args:
+            predicate: Function to test the inner value.
+
+        Returns:
+            bool: True if Ok and predicate matches.
+
+        Example:
+            >>> Ok(2).is_ok_and(lambda x: x % 2 == 0)
+            True
+            >>> Err(3).is_ok_and(lambda x: True)
+            False
+        """
+        if isinstance(self, Ok):
+            return predicate(self.value)
+        return False
+
+    def is_err_and(self, predicate: Callable[[E], bool]) -> bool:
+        """Return true if Result is Err and predicate returns true.
+
+        Args:
+            predicate: Function to test the error value.
+
+        Returns:
+            bool: True if Err and predicate matches.
+
+        Example:
+            >>> Err(3).is_err_and(lambda x: x > 0)
+            True
+            >>> Ok(2).is_err_and(lambda x: True)
+            False
+        """
+        if isinstance(self, Err):
+            return predicate(self.error)
+        return False
+
     def inspect(
         self,
         fn: Callable[[T], Any],
