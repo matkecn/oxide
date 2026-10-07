@@ -83,6 +83,52 @@ class Iter(Generic[T]):
             self._iter = iter(source)
 
     @classmethod
+    def empty(cls) -> Iter[T]:
+        """Create an empty iterator.
+
+        Returns:
+            An empty Iter.
+
+        Examples:
+            >>> Iter.empty().collect()
+            []
+        """
+        return cls(iter(()))
+
+    @classmethod
+    def once(cls, value: T) -> Iter[T]:
+        """Create an iterator that yields a single value.
+
+        Args:
+            value: The value to yield.
+
+        Returns:
+            An Iter yielding the value once.
+
+        Examples:
+            >>> Iter.once(42).collect()
+            [42]
+        """
+        return cls(iter((value,)))
+
+    @classmethod
+    def repeat_n(cls, value: T, n: int) -> Iter[T]:
+        """Create an iterator that yields the same value `n` times.
+
+        Args:
+            value: The value to repeat.
+            n: The number of times to yield it.
+
+        Returns:
+            An Iter yielding the value n times.
+
+        Examples:
+            >>> Iter.repeat_n(7, 3).collect()
+            [7, 7, 7]
+        """
+        return cls(iter((value,) * n)) if n >= 0 else cls.empty()
+
+    @classmethod
     def from_fn(cls, fn: Callable[[int], T], start: int = 0) -> Iter[T]:
         """Create an infinite iterator by applying fn to successive indices.
 
@@ -102,6 +148,32 @@ class Iter(Generic[T]):
             while True:
                 yield fn(i)
                 i += 1
+        return cls(gen())
+
+    @classmethod
+    def unfold(cls, initial: T, f: Callable[[T], tuple[U, T] | None]) -> Iter[U]:
+        """Create an iterator by unfolding a state.
+
+        Args:
+            initial: The initial state.
+            f: A function that takes the current state and returns
+                (value, next_state) or None to stop.
+
+        Returns:
+            An Iter of unfolded values.
+
+        Examples:
+            >>> Iter.unfold(0, lambda s: (s, s+1) if s < 3 else None).collect()
+            [0, 1, 2]
+        """
+        def gen():
+            state = initial
+            while True:
+                res = f(state)
+                if res is None:
+                    return
+                value, state = res
+                yield value
         return cls(gen())
 
     @classmethod
