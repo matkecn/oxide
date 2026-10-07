@@ -394,7 +394,7 @@ def mastermethod(target: F | None = None) -> Any:
                 "masterclass cannot wrap a staticmethod or classmethod; "
                 f"unwrap it first, got {type(func).__name__}"
             )
-        return MasterMethod(func)
+        return MasterMethod(func, _kind="mastermethod")
 
     if target is None:
         return decorate
