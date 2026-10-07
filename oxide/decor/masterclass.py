@@ -83,7 +83,7 @@ class MasterMethod(Generic[F]):
 
     __slots__ = ("func", "__wrapped__", "__dict__")
 
-    def __init__(self, func: F) -> None:
+    def __init__(self, func: F, _kind: str = "masterclass") -> None:
         """Wrap a function as a combined class/instance method.
 
         Args:
@@ -97,8 +97,9 @@ class MasterMethod(Generic[F]):
         if not callable(func):
             raise TypeError(f"masterclass expects a callable, got {type(func).__name__}")
         self.func = func
+        self._kind = _kind
         self.__wrapped__ = func
-        self.__name__ = getattr(func, "__name__", "masterclass")
+        self.__name__ = getattr(func, "__name__", _kind)
         self.__qualname__ = getattr(func, "__qualname__", self.__name__)
         self.__module__ = getattr(func, "__module__", None)
         self.__doc__ = getattr(func, "__doc__", None)
@@ -153,7 +154,12 @@ class MasterMethod(Generic[F]):
         Returns:
             str: For example ``<masterclass Counter.report>``.
         """
-        return f"<masterclass {self.__qualname__}>"
+        try:
+            name = self.__qualname__
+        except Exception:
+            name = getattr(self.func, "__name__", repr(self.func))
+        kind = getattr(self, "_kind", "masterclass")
+        return f"<{kind} {name}>"
 
 
 def masterclass(target: F | None = None) -> Any:
@@ -209,7 +215,67 @@ def masterclass(target: F | None = None) -> Any:
                 "masterclass cannot wrap a staticmethod or classmethod; "
                 f"unwrap it first, got {type(func).__name__}"
             )
-        return MasterMethod(func)
+        return MasterMethod(func, _kind="masterclass")
+
+    if target is None:
+        return decorate
+    return decorate(target)
+
+
+def mastermethod(target: F | None = None) -> Any:
+    """Combine ``classmethod`` and ``staticmethod`` into one method.
+
+    The wrapped function is called with the class first and the instance second.
+    When the method is reached through the class rather than an instance, the
+    instance argument is ``None``.
+
+    Usable bare or called, so ``@mastermethod`` and ``@mastermethod()`` both work.
+
+    Args:
+        target: The function to decorate, or ``None`` when used as
+            ``@mastermethod()``.
+
+    Returns:
+        MasterMethod: The descriptor, or a decorator producing one.
+
+    Raises:
+        TypeError: If ``target`` is given and is not callable, or if it is
+            already a ``staticmethod`` or ``classmethod``, whose binding would
+            be silently discarded.
+
+    Example:
+        >>> from oxide.decor import mastermethod
+        >>> class Builder:
+        ...     def __init__(self, parts):
+        ...         self.parts = parts
+        ...     @mastermethod
+        ...     def size(cls, self):
+        ...         return 0 if self is None else len(self.parts)
+        >>> Builder(["a", "b"]).size()
+        2
+        >>> Builder.size()
+        0
+        >>> Builder.__dict__["size"].__doc__ is None
+        True
+        >>> repr(Builder.__dict__["size"])
+        '<mastermethod Builder.size>'
+    """
+
+    def decorate(func: F) -> MasterMethod[F]:
+        """Wrap one function in a MasterMethod.
+
+        Args:
+            func: The function to wrap.
+
+        Returns:
+            MasterMethod: The descriptor for it.
+        """
+        if isinstance(func, (staticmethod, classmethod)):
+            raise TypeError(
+                "masterclass cannot wrap a staticmethod or classmethod; "
+                f"unwrap it first, got {type(func).__name__}"
+            )
+        return MasterMethod(func, _kind="mastermethod")
 
     if target is None:
         return decorate

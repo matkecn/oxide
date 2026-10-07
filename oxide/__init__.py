@@ -91,6 +91,7 @@ from .memory.refcell import RefCell, Ref, RefMut, BorrowError, BorrowMutError
 from .memory.oncecell import OnceCell
 from .memory.lazy import Lazy
 from .memory.cow import Cow, CowBorrowed, CowOwned
+from .memory.mem import size_of, needs_drop, forget
 from .memory.pin import (
     Pin, ManuallyDrop, MaybeUninit, NonNull, PhantomData,
     Borrow, BorrowMut,
@@ -139,7 +140,13 @@ from .macros.panic import panic, todo, unimplemented, ScopeGuard, defer
 
 from .other import (
     Ordering, ControlFlow, Reverse, Wrapping, Saturating, NonZero,
-    SmallVec, ArrayVec, TinyVec, BitVec, CreateMeta,
+    SmallVec, ArrayVec, TinyVec, BitVec, BitFlags, CreateMeta,
+)
+from .ownership import (
+    Owner, own, Move, move_, MovedError,
+    Borrowed, BorrowedMut,
+    Lifetime, LifetimeRef, LifetimeError,
+    RAII, raii,
 )
 
 from .filter import Filter, FilterError
@@ -157,7 +164,7 @@ from .derive import (
 )
 
 from .decor import (
-    masterclass, MasterMethod, is_master,
+    masterclass, mastermethod, MasterMethod, is_master,
     cfg as cfg_,
     no_mangle, used, cold, naked, link, link_name, crate_type, crate_name,
     repr_, repr_kinds_of, track_caller, caller_location,
@@ -209,6 +216,7 @@ __all__ = [
     "BorrowError", "BorrowMutError", "OnceCell", "Lazy",
     "Cow", "CowBorrowed", "CowOwned",
     "Pin", "ManuallyDrop", "MaybeUninit", "NonNull", "PhantomData",
+    "size_of", "needs_drop", "forget",
     "Borrow", "BorrowMut",
     # sync
     "Atomic", "AtomicBool", "AtomicInt",
@@ -237,7 +245,12 @@ __all__ = [
     "panic", "todo", "unimplemented", "ScopeGuard", "defer",
     # other
     "Ordering", "ControlFlow", "Reverse", "Wrapping", "Saturating", "NonZero",
-    "SmallVec", "ArrayVec", "TinyVec", "BitVec", "CreateMeta",
+    "SmallVec", "ArrayVec", "TinyVec", "BitVec", "BitFlags", "CreateMeta",
+    # ownership
+    "Owner", "own", "Move", "move_", "MovedError",
+    "Borrowed", "BorrowedMut",
+    "Lifetime", "LifetimeRef", "LifetimeError",
+    "RAII", "raii",
     # filter
     "Filter", "FilterError",
     # regex
@@ -264,5 +277,5 @@ __all__ = [
     "println", "print_", "eprintln", "eprint_",
     "stdin", "stdout", "stderr", "capture", "style",
     # help
-    "Help",
+    "Help", "mastermethod"
 ]
