@@ -216,6 +216,7 @@ def masterclass(target: F | None = None) -> Any:
                 f"unwrap it first, got {type(func).__name__}"
             )
         return MasterMethod(func, _kind="masterclass")
+>>>>>>> 325f9a9 (Fix conflicts and updates)
 def mastermethod(target: F | None = None) -> Any:
     """Combine ``classmethod`` and ``staticmethod`` into one method.
 
