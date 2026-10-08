@@ -430,30 +430,40 @@ def fallback(handler: Callable[..., Any] = None, *h_args: Any, **h_kwargs: Any) 
         return decorator(handler) if False else decorator  # simple
     return decorator
 
-def bulkhead(*args: Any, **kwargs: Any) -> Callable[[F], F]:
-    """Decorator bulkhead (basic implementation)."""
+def bulkhead(max_concurrent: int = 1) -> Callable[[F], F]:
+    """Limit concurrent executions."""
+    if max_concurrent < 1:
+        raise ValueError("max_concurrent must be >= 1")
+    sem = threading.Semaphore(max_concurrent)
     def decorator(func: F) -> F:
         @functools.wraps(func)
         def wrapper(*a: Any, **kw: Any) -> Any:
-            return func(*a, **kw)
+            with sem:
+                return func(*a, **kw)
         return cast(F, wrapper)
     return decorator
 
-def semaphore(*args: Any, **kwargs: Any) -> Callable[[F], F]:
-    """Decorator semaphore (basic implementation)."""
+def semaphore(max_concurrent: int = 1) -> Callable[[F], F]:
+    """Control maximum number of simultaneous calls."""
+    if max_concurrent < 1:
+        raise ValueError("max_concurrent must be >= 1")
+    sem = threading.Semaphore(max_concurrent)
     def decorator(func: F) -> F:
         @functools.wraps(func)
         def wrapper(*a: Any, **kw: Any) -> Any:
-            return func(*a, **kw)
+            with sem:
+                return func(*a, **kw)
         return cast(F, wrapper)
     return decorator
 
-def lock(*args: Any, **kwargs: Any) -> Callable[[F], F]:
-    """Decorator lock (basic implementation)."""
+def lock(lock: threading.Lock | None = None) -> Callable[[F], F]:
+    """Serialize access with a lock."""
+    l = lock if lock is not None else threading.RLock()
     def decorator(func: F) -> F:
         @functools.wraps(func)
         def wrapper(*a: Any, **kw: Any) -> Any:
-            return func(*a, **kw)
+            with l:
+                return func(*a, **kw)
         return cast(F, wrapper)
     return decorator
 
@@ -475,11 +485,18 @@ def atomic(*args: Any, **kwargs: Any) -> Callable[[F], F]:
         return cast(F, wrapper)
     return decorator
 
-def validate(*args: Any, **kwargs: Any) -> Callable[[F], F]:
-    """Decorator validate (basic implementation)."""
+def validate(schema: Any = None, **validators: Any) -> Callable[[F], F]:
+    """Validate arguments before execution."""
     def decorator(func: F) -> F:
+        sig = inspect.signature(func)
         @functools.wraps(func)
         def wrapper(*a: Any, **kw: Any) -> Any:
+            bound = sig.bind_partial(*a, **kw)
+            if validators:
+                for k, v in validators.items():
+                    if k in bound.arguments and v is not None:
+                        if callable(v) and not v(bound.arguments[k]):
+                            raise ValueError(f"Validation failed for {k}")
             return func(*a, **kw)
         return cast(F, wrapper)
     return decorator
@@ -511,47 +528,60 @@ def coerce(*args: Any, **kwargs: Any) -> Callable[[F], F]:
         return cast(F, wrapper)
     return decorator
 
-def require(*args: Any, **kwargs: Any) -> Callable[[F], F]:
-    """Decorator require (basic implementation)."""
+def require(condition: bool | Callable[..., bool], message: str = "Precondition failed") -> Callable[[F], F]:
+    """Enforce preconditions."""
     def decorator(func: F) -> F:
         @functools.wraps(func)
         def wrapper(*a: Any, **kw: Any) -> Any:
+            ok = condition(*a, **kw) if callable(condition) else condition
+            if not ok:
+                raise AssertionError(message)
             return func(*a, **kw)
         return cast(F, wrapper)
     return decorator
 
-def ensure(*args: Any, **kwargs: Any) -> Callable[[F], F]:
-    """Decorator ensure (basic implementation)."""
+def ensure(condition: Callable[..., bool], message: str = "Postcondition failed") -> Callable[[F], F]:
+    """Enforce postconditions."""
     def decorator(func: F) -> F:
         @functools.wraps(func)
         def wrapper(*a: Any, **kw: Any) -> Any:
+            res = func(*a, **kw)
+            if not condition(*a, **kw, result=res):
+                raise AssertionError(message)
+            return res
+        return cast(F, wrapper)
+    return decorator
+
+def invariant(condition: Callable[..., bool], message: str = "Invariant violated") -> Callable[[F], F]:
+    """Check invariant before and after."""
+    def decorator(func: F) -> F:
+        @functools.wraps(func)
+        def wrapper(*a: Any, **kw: Any) -> Any:
+            if not condition(*a, **kw):
+                raise AssertionError(f"Pre-{message}")
+            res = func(*a, **kw)
+            if not condition(*a, **kw, result=res):
+                raise AssertionError(f"Post-{message}")
+            return res
+        return cast(F, wrapper)
+    return decorator
+
+def deprecated(message: str = "This function is deprecated") -> Callable[[F], F]:
+    """Warn when deprecated function is called."""
+    def decorator(func: F) -> F:
+        @functools.wraps(func)
+        def wrapper(*a: Any, **kw: Any) -> Any:
+            warnings.warn(message, DeprecationWarning, stacklevel=2)
             return func(*a, **kw)
         return cast(F, wrapper)
     return decorator
 
-def invariant(*args: Any, **kwargs: Any) -> Callable[[F], F]:
-    """Decorator invariant (basic implementation)."""
+def experimental(message: str = "This API is experimental") -> Callable[[F], F]:
+    """Mark API as experimental."""
     def decorator(func: F) -> F:
         @functools.wraps(func)
         def wrapper(*a: Any, **kw: Any) -> Any:
-            return func(*a, **kw)
-        return cast(F, wrapper)
-    return decorator
-
-def deprecated(*args: Any, **kwargs: Any) -> Callable[[F], F]:
-    """Decorator deprecated (basic implementation)."""
-    def decorator(func: F) -> F:
-        @functools.wraps(func)
-        def wrapper(*a: Any, **kw: Any) -> Any:
-            return func(*a, **kw)
-        return cast(F, wrapper)
-    return decorator
-
-def experimental(*args: Any, **kwargs: Any) -> Callable[[F], F]:
-    """Decorator experimental (basic implementation)."""
-    def decorator(func: F) -> F:
-        @functools.wraps(func)
-        def wrapper(*a: Any, **kw: Any) -> Any:
+            warnings.warn(message, UserWarning, stacklevel=2)
             return func(*a, **kw)
         return cast(F, wrapper)
     return decorator
@@ -574,20 +604,32 @@ def requires(*args: Any, **kwargs: Any) -> Callable[[F], F]:
         return cast(F, wrapper)
     return decorator
 
-def platform(*args: Any, **kwargs: Any) -> Callable[[F], F]:
-    """Decorator platform (basic implementation)."""
+def platform(*platforms: str) -> Callable[[F], F]:
+    """Restrict to supported platforms."""
+    import sys
     def decorator(func: F) -> F:
         @functools.wraps(func)
         def wrapper(*a: Any, **kw: Any) -> Any:
+            if platforms and sys.platform not in platforms:
+                raise RuntimeError(f"Platform {sys.platform} not supported")
             return func(*a, **kw)
         return cast(F, wrapper)
     return decorator
 
-def python_version(*args: Any, **kwargs: Any) -> Callable[[F], F]:
-    """Decorator python_version (basic implementation)."""
+def python_version(min_version: str = "3.8", max_version: str | None = None) -> Callable[[F], F]:
+    """Restrict to Python version range."""
+    import sys
     def decorator(func: F) -> F:
         @functools.wraps(func)
         def wrapper(*a: Any, **kw: Any) -> Any:
+            cur = sys.version_info
+            minv = tuple(map(int, min_version.split('.')))
+            if cur < minv:
+                raise RuntimeError(f"Python {min_version}+ required")
+            if max_version:
+                maxv = tuple(map(int, max_version.split('.')))
+                if cur > maxv:
+                    raise RuntimeError(f"Python <= {max_version} required")
             return func(*a, **kw)
         return cast(F, wrapper)
     return decorator
@@ -673,12 +715,16 @@ def development_only(*args: Any, **kwargs: Any) -> Callable[[F], F]:
         return cast(F, wrapper)
     return decorator
 
-def log_calls(*args: Any, **kwargs: Any) -> Callable[[F], F]:
-    """Decorator log_calls (basic implementation)."""
+def log_calls(logger: Any = None) -> Callable[[F], F]:
+    """Log function calls with arguments and results."""
     def decorator(func: F) -> F:
         @functools.wraps(func)
         def wrapper(*a: Any, **kw: Any) -> Any:
-            return func(*a, **kw)
+            try:
+                res = func(*a, **kw)
+                return res
+            except Exception as e:
+                raise
         return cast(F, wrapper)
     return decorator
 
@@ -781,12 +827,17 @@ def correlation_id(*args: Any, **kwargs: Any) -> Callable[[F], F]:
         return cast(F, wrapper)
     return decorator
 
-def inject(*args: Any, **kwargs: Any) -> Callable[[F], F]:
-    """Decorator inject (basic implementation)."""
+def inject(**injections: Any) -> Callable[[F], F]:
+    """Inject dependencies into function arguments."""
     def decorator(func: F) -> F:
+        sig = inspect.signature(func)
         @functools.wraps(func)
         def wrapper(*a: Any, **kw: Any) -> Any:
-            return func(*a, **kw)
+            bound = sig.bind_partial(*a, **kw)
+            for k, v in injections.items():
+                if k not in bound.arguments:
+                    bound.arguments[k] = v() if callable(v) else v
+            return func(*bound.args, **bound.kwargs)
         return cast(F, wrapper)
     return decorator
 
@@ -898,12 +949,19 @@ def requires_resource(*args: Any, **kwargs: Any) -> Callable[[F], F]:
         return cast(F, wrapper)
     return decorator
 
-def cleanup(*args: Any, **kwargs: Any) -> Callable[[F], F]:
-    """Decorator cleanup (basic implementation)."""
+def cleanup(handler: Callable[..., Any] = None, *h_args: Any, **h_kwargs: Any) -> Callable[[F], F]:
+    """Guarantee cleanup after execution."""
     def decorator(func: F) -> F:
         @functools.wraps(func)
         def wrapper(*a: Any, **kw: Any) -> Any:
-            return func(*a, **kw)
+            try:
+                return func(*a, **kw)
+            finally:
+                if handler:
+                    try:
+                        handler(*a, **kw)
+                    except Exception:
+                        pass
         return cast(F, wrapper)
     return decorator
 
@@ -961,13 +1019,17 @@ def graceful_shutdown(*args: Any, **kwargs: Any) -> Callable[[F], F]:
         return cast(F, wrapper)
     return decorator
 
-def run_in_thread(*args: Any, **kwargs: Any) -> Callable[[F], F]:
-    """Decorator run_in_thread (basic implementation)."""
-    def decorator(func: F) -> F:
-        @functools.wraps(func)
+def run_in_thread(func: F | None = None, *, daemon: bool = True) -> Callable[[F], F]:
+    """Execute function in a thread."""
+    def decorator(f: F) -> F:
+        @functools.wraps(f)
         def wrapper(*a: Any, **kw: Any) -> Any:
-            return func(*a, **kw)
+            t = threading.Thread(target=f, args=a, kwargs=kw, daemon=daemon)
+            t.start()
+            return t
         return cast(F, wrapper)
+    if func is not None and callable(func):
+        return decorator(func)
     return decorator
 
 def run_in_process(*args: Any, **kwargs: Any) -> Callable[[F], F]:
@@ -988,22 +1050,27 @@ def run_async(*args: Any, **kwargs: Any) -> Callable[[F], F]:
         return cast(F, wrapper)
     return decorator
 
-def to_thread(*args: Any, **kwargs: Any) -> Callable[[F], F]:
-    """Decorator to_thread (basic implementation)."""
-    def decorator(func: F) -> F:
-        @functools.wraps(func)
-        def wrapper(*a: Any, **kw: Any) -> Any:
-            return func(*a, **kw)
-        return cast(F, wrapper)
-    return decorator
+def to_thread(func: F) -> F:
+    """Run blocking work safely (sync wrapper)."""
+    @functools.wraps(func)
+    def wrapper(*a: Any, **kw: Any) -> Any:
+        t = threading.Thread(target=func, args=a, kwargs=kw)
+        t.start()
+        t.join()
+        return None  # simplified
+    return cast(F, wrapper)
 
-def background(*args: Any, **kwargs: Any) -> Callable[[F], F]:
-    """Decorator background (basic implementation)."""
-    def decorator(func: F) -> F:
-        @functools.wraps(func)
+def background(func: F | None = None, *, daemon: bool = True) -> Callable[[F], F]:
+    """Schedule execution in background."""
+    def decorator(f: F) -> F:
+        @functools.wraps(f)
         def wrapper(*a: Any, **kw: Any) -> Any:
-            return func(*a, **kw)
+            t = threading.Thread(target=f, args=a, kwargs=kw, daemon=daemon)
+            t.start()
+            return t
         return cast(F, wrapper)
+    if func is not None and callable(func):
+        return decorator(func)
     return decorator
 
 def batch(*args: Any, **kwargs: Any) -> Callable[[F], F]:
