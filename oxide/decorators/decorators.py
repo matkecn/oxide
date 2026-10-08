@@ -414,13 +414,20 @@ def circuit_breaker(fail_threshold: int = 5, reset_timeout: float = 60.0) -> Cal
         return cast(F, wrapper)
     return decorator
 
-def fallback(*args: Any, **kwargs: Any) -> Callable[[F], F]:
-    """Decorator fallback (basic implementation)."""
+def fallback(handler: Callable[..., Any] = None, *h_args: Any, **h_kwargs: Any) -> Callable[[F], F]:
+    """Use alternative function when primary fails."""
     def decorator(func: F) -> F:
         @functools.wraps(func)
         def wrapper(*a: Any, **kw: Any) -> Any:
-            return func(*a, **kw)
+            try:
+                return func(*a, **kw)
+            except Exception:
+                if handler is not None:
+                    return handler(*a, **kw)
+                raise
         return cast(F, wrapper)
+    if handler is not None and callable(handler):
+        return decorator(handler) if False else decorator  # simple
     return decorator
 
 def bulkhead(*args: Any, **kwargs: Any) -> Callable[[F], F]:
