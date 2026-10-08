@@ -156,6 +156,10 @@ try:
     from .types import Optional, Expected, Variant, Span
 except Exception:
     Optional = Expected = Variant = Span = None  # type: ignore[assignment]
+try:
+    from .js import Promise
+except Exception:
+    Promise = None  # type: ignore[assignment]
 
 
 from .filter import Filter, FilterError
@@ -264,6 +268,8 @@ __all__ = [
     "LRUCache", "LFUCache", "TTLCache",
     # types (aliases)
     "Optional", "Expected", "Variant", "Span",
+    # js
+    "Promise",
     # filter
     "Filter", "FilterError",
     # regex
