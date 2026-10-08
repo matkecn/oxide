@@ -152,6 +152,10 @@ try:
     from .cache import LRUCache, LFUCache, TTLCache
 except Exception:
     LRUCache = LFUCache = TTLCache = None  # type: ignore[assignment]
+try:
+    from .types import Optional, Expected, Variant, Span
+except Exception:
+    Optional = Expected = Variant = Span = None  # type: ignore[assignment]
 
 
 from .filter import Filter, FilterError
@@ -258,6 +262,8 @@ __all__ = [
     "RAII", "raii",
     # cache
     "LRUCache", "LFUCache", "TTLCache",
+    # types (aliases)
+    "Optional", "Expected", "Variant", "Span",
     # filter
     "Filter", "FilterError",
     # regex
