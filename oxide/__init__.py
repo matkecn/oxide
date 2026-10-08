@@ -160,6 +160,27 @@ try:
     from .js import Promise
 except Exception:
     Promise = None  # type: ignore[assignment]
+try:
+    from .lua import Coroutine, MetaTable, Table, Script, Function, MultiReturn
+except Exception:
+    Coroutine = MetaTable = Table = Script = Function = MultiReturn = None  # type: ignore[assignment]
+try:
+    from .ffi_ext import Ptr as CPtr, Struct, FunctionPtr, Bits, bits, alloc, memory as cmemory, simd, ffi, mmap
+except Exception:
+    CPtr = Struct = FunctionPtr = Bits = bits = alloc = cmemory = simd = ffi = mmap = None  # type: ignore[assignment]
+try:
+    from .cpp import Resource, Shared, Weak, move, Optional as COptional, Variant as CVariant, Expected as CExpected, Span, Pool, Allocator, Iterator as CppIterator, Vector, Deque, HashMap as CppHashMap, HashSet as CppHashSet, Box as CppBox
+except Exception:
+    Resource = Shared = Weak = move = COptional = CVariant = CExpected = Span = Pool = Allocator = CppIterator = Vector = Deque = CppHashMap = CppHashSet = CppBox = None  # type: ignore[assignment]
+try:
+    from .java import ThreadPool, Future, Promise as JPromise, ConcurrentMap, BlockingQueue, RWLock as JRWLock, Semaphore as JSemaphore, Latch, Immutable, Record, Annotation, reflection
+except Exception:
+    ThreadPool = Future = JPromise = ConcurrentMap = BlockingQueue = JRWLock = JSemaphore = Latch = Immutable = Record = Annotation = reflection = None  # type: ignore[assignment]
+try:
+    from .js_ext import Promise as JSPromise, all as jsall, race as jsrace, EventEmitter, EventLoop, Proxy, Symbol, Uint8Array, Float32Array, ArrayBuffer, WeakMap, WeakSet, load_module, Generator, AsyncIterator
+except Exception:
+    JSPromise = jsall = jsrace = EventEmitter = EventLoop = Proxy = Symbol = Uint8Array = Float32Array = ArrayBuffer = WeakMap = WeakSet = load_module = Generator = AsyncIterator = None  # type: ignore[assignment]
+
 
 
 from .filter import Filter, FilterError
@@ -298,3 +319,25 @@ __all__ = [
     # help
     "Help", "mastermethod"
 ]
+
+# Convenience exports
+try:
+    from .lua import *
+except Exception:
+    pass
+try:
+    from .ffi_ext import *
+except Exception:
+    pass
+try:
+    from .cpp import *
+except Exception:
+    pass
+try:
+    from .java import *
+except Exception:
+    pass
+try:
+    from .js_ext import *
+except Exception:
+    pass
