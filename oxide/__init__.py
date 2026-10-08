@@ -153,13 +153,17 @@ try:
 except Exception:
     LRUCache = LFUCache = TTLCache = None  # type: ignore[assignment]
 try:
-    from .types import Optional, Expected, Variant, Span
+    from .types import Optional, Expected, Variant, Span, Vector, HashMap, HashSet, Deque
 except Exception:
-    Optional = Expected = Variant = Span = None  # type: ignore[assignment]
+    Optional = Expected = Variant = Span = Vector = HashMap = HashSet = Deque = None  # type: ignore[assignment]
 try:
     from .js import Promise
 except Exception:
     Promise = None  # type: ignore[assignment]
+try:
+    from .ptr import Ptr, Box
+except Exception:
+    Ptr = Box = None  # type: ignore[assignment]
 try:
     from .lua import Coroutine, MetaTable, Table, Script, Function, MultiReturn
 except Exception:
@@ -290,7 +294,9 @@ __all__ = [
     # types (aliases)
     "Optional", "Expected", "Variant", "Span",
     # js
-    "Promise",
+    "Promise", "Ptr", "Box",
+    # modern types
+    "Vector", "HashMap", "HashSet", "Deque", "Optional", "Variant", "Expected", "Span",
     # filter
     "Filter", "FilterError",
     # regex
