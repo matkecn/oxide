@@ -86,7 +86,7 @@ from .derive import (
     lint_warn, lint_allow, lint_deny, lint_forbid,
 )
 
-from .decor import (
+from .core import (
     masterclass, MasterMethod, is_master, mastermethod,
     TestResult, test, bench, tests, run_tests,
 )

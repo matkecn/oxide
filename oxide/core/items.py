@@ -17,7 +17,7 @@ marked functions are collected into registries that :func:`run_tests` executes,
 honouring each attribute.
 
 Example:
-    >>> from oxide.decor import no_mangle, repr_, repr_kinds_of, test, run_tests
+    >>> from oxide.core import no_mangle, repr_, repr_kinds_of, test, run_tests
     >>> @no_mangle
     ... def entry_point():
     ...     return 1
@@ -99,7 +99,7 @@ def no_mangle(target: F) -> F:
         The function, unchanged.
 
     Example:
-        >>> from oxide.decor import no_mangle
+        >>> from oxide.core import no_mangle
         >>> from oxide.derive.attributes import find_attribute
         >>> @no_mangle
         ... def exported():
@@ -121,7 +121,7 @@ def used(target: F) -> F:
         The target, unchanged.
 
     Example:
-        >>> from oxide.decor import used
+        >>> from oxide.core import used
         >>> from oxide.derive.attributes import find_attribute
         >>> @used
         ... def vtable_entry():
@@ -143,7 +143,7 @@ def cold(target: F) -> F:
         The function, unchanged.
 
     Example:
-        >>> from oxide.decor import cold
+        >>> from oxide.core import cold
         >>> from oxide.derive.attributes import find_attribute
         >>> @cold
         ... def unreachable_default():
@@ -165,7 +165,7 @@ def naked(target: F) -> F:
         The function, unchanged.
 
     Example:
-        >>> from oxide.decor import naked
+        >>> from oxide.core import naked
         >>> from oxide.derive.attributes import find_attribute
         >>> @naked
         ... def entry():
@@ -189,7 +189,7 @@ def link(name: str, *, kind: str = "static") -> Callable[[Any], Any]:
         Callable: A decorator returning the target unchanged.
 
     Example:
-        >>> from oxide.decor import link
+        >>> from oxide.core import link
         >>> from oxide.derive.attributes import find_attribute
         >>> @link("m", kind="static")
         ... def call_libm(x):
@@ -223,7 +223,7 @@ def link_name(name: str) -> Callable[[Any], Any]:
         Callable: A decorator returning the target unchanged.
 
     Example:
-        >>> from oxide.decor import link_name
+        >>> from oxide.core import link_name
         >>> from oxide.derive.attributes import find_attribute
         >>> @link_name("memcpy")
         ... def copy_bytes():
@@ -257,7 +257,7 @@ def crate_type(name: str) -> Callable[[Any], Any]:
         Callable: A decorator returning the target unchanged.
 
     Example:
-        >>> from oxide.decor import crate_type
+        >>> from oxide.core import crate_type
         >>> from oxide.derive.attributes import find_attribute
         >>> @crate_type("cdylib")
         ... class Plugin:
@@ -291,7 +291,7 @@ def crate_name(name: str) -> Callable[[Any], Any]:
         Callable: A decorator returning the target unchanged.
 
     Example:
-        >>> from oxide.decor import crate_name
+        >>> from oxide.core import crate_name
         >>> from oxide.derive.attributes import find_attribute
         >>> @crate_name("oxide_core")
         ... class Root:
@@ -325,7 +325,7 @@ def path(value: str) -> Callable[[Any], Any]:
         Callable: A decorator returning the target unchanged.
 
     Example:
-        >>> from oxide.decor import path
+        >>> from oxide.core import path
         >>> from oxide.derive.attributes import find_attribute
         >>> @path("vendor/extra.rs")
         ... class Extra:
@@ -367,7 +367,7 @@ def repr_(*kinds: str) -> Callable[[Any], Any]:
         ValueError: If no kind is given.
 
     Example:
-        >>> from oxide.decor import repr_
+        >>> from oxide.core import repr_
         >>> from oxide.derive.attributes import find_attribute
         >>> @repr_("transparent")
         ... class Wrapper:
@@ -408,7 +408,7 @@ def repr_kinds_of(target: Any) -> tuple[str, ...]:
         tuple: The recorded kinds, or an empty tuple when none were recorded.
 
     Example:
-        >>> from oxide.decor import repr_, repr_kinds_of
+        >>> from oxide.core import repr_, repr_kinds_of
         >>> @repr_("C", "u64")
         ... class Raw:
         ...     pass
@@ -447,7 +447,7 @@ def caller_location(depth: int = 1) -> Location:
         shallower than ``depth``.
 
     Example:
-        >>> from oxide.decor import caller_location
+        >>> from oxide.core import caller_location
         >>> def report():
         ...     return caller_location()
         >>> def outer():
@@ -483,7 +483,7 @@ def track_caller(target: F) -> F:
         The function, unchanged.
 
     Example:
-        >>> from oxide.decor import caller_location, track_caller
+        >>> from oxide.core import caller_location, track_caller
         >>> @track_caller
         ... def fail(message):
         ...     return f"{message} at {caller_location().file()}"
@@ -517,7 +517,7 @@ def main(target: F | None = None, *, runner: str = "asyncio") -> Any:
         TypeError: If the target is not a coroutine function.
 
     Example:
-        >>> from oxide.decor import main
+        >>> from oxide.core import main
         >>> @main
         ... async def serve():
         ...     return "served"
@@ -606,7 +606,7 @@ def test(target: F) -> F:
     """Register a function as a test, emulating Rust's ``#[test]``.
 
     Example:
-        >>> from oxide.decor import test, is_test
+        >>> from oxide.core import test, is_test
         >>> @test
         ... def test_added():
         ...     assert 1 + 1 == 2
@@ -627,7 +627,7 @@ def is_test(target: Any) -> bool:
         bool: True when the function carries ``#[test]``.
 
     Example:
-        >>> from oxide.decor import is_test, test
+        >>> from oxide.core import is_test, test
         >>> @test
         ... def test_marked():
         ...     return None
@@ -712,7 +712,7 @@ def tests(module: Any = None) -> tuple[Any, ...]:
         tuple: The registered test functions, in definition order.
 
     Example:
-        >>> from oxide.decor import test, tests
+        >>> from oxide.core import test, tests
         >>> @test
         ... def test_one():
         ...     return None
@@ -733,7 +733,7 @@ def benches(module: Any = None) -> tuple[Any, ...]:
         tuple: The registered benchmark functions, in definition order.
 
     Example:
-        >>> from oxide.decor import bench, benches
+        >>> from oxide.core import bench, benches
         >>> @bench
         ... def bench_sum():
         ...     return sum(range(100))
@@ -753,7 +753,7 @@ def bench(target: F) -> F:
         The function, unchanged.
 
     Example:
-        >>> from oxide.decor import bench, is_bench
+        >>> from oxide.core import bench, is_bench
         >>> @bench
         ... def bench_fast():
         ...     return 1
@@ -774,7 +774,7 @@ def is_bench(target: Any) -> bool:
         bool: True when the function carries ``#[bench]``.
 
     Example:
-        >>> from oxide.decor import bench, is_bench
+        >>> from oxide.core import bench, is_bench
         >>> @bench
         ... def bench_marked():
         ...     return None
@@ -796,7 +796,7 @@ def ignore(reason: str = "no reason given") -> Callable[[F], F]:
         Callable: A decorator returning the target unchanged.
 
     Example:
-        >>> from oxide.decor import ignore, ignored_reason, is_ignored
+        >>> from oxide.core import ignore, ignored_reason, is_ignored
         >>> @ignore("needs a GPU")
         ... def test_heavy():
         ...     return None
@@ -831,7 +831,7 @@ def ignored_reason(target: Any) -> str | None:
         str | None: The recorded reason.
 
     Example:
-        >>> from oxide.decor import ignore, ignored_reason
+        >>> from oxide.core import ignore, ignored_reason
         >>> @ignore("flaky")
         ... def test_flaky():
         ...     return None
@@ -858,7 +858,7 @@ def is_ignored(target: Any) -> bool:
         bool: True when the test carries ``#[ignore]``.
 
     Example:
-        >>> from oxide.decor import ignore, is_ignored
+        >>> from oxide.core import ignore, is_ignored
         >>> @ignore()
         ... def test_skipped():
         ...     return None
@@ -879,7 +879,7 @@ def should_panic(expected: type[BaseException] | str | None = None) -> Callable[
         Callable: A decorator returning the target unchanged.
 
     Example:
-        >>> from oxide.decor import should_panic, should_panic_of
+        >>> from oxide.core import should_panic, should_panic_of
         >>> @should_panic(ValueError)
         ... def test_raises():
         ...     raise ValueError("bad input")
@@ -913,7 +913,7 @@ def should_panic_of(target: Any) -> type[BaseException] | str | None:
         when the test is not marked ``#[should_panic]``.
 
     Example:
-        >>> from oxide.decor import should_panic, should_panic_of
+        >>> from oxide.core import should_panic, should_panic_of
         >>> @should_panic("overflow")
         ... def test_overflow():
         ...     raise RuntimeError("integer overflow")
@@ -943,7 +943,7 @@ def serial(target: F) -> F:
         The target, unchanged.
 
     Example:
-        >>> from oxide.decor import serial, is_serial
+        >>> from oxide.core import serial, is_serial
         >>> @serial
         ... def test_exclusive():
         ...     return None
@@ -964,7 +964,7 @@ def is_serial(target: Any) -> bool:
         bool: True when the test carries ``#[serial]``.
 
     Example:
-        >>> from oxide.decor import serial, is_serial
+        >>> from oxide.core import serial, is_serial
         >>> @serial
         ... def test_one():
         ...     return None
@@ -1007,7 +1007,7 @@ def run_tests(include_ignored: bool = False, module: Any = None) -> TestResult:
         TestResult: The pass, failure, ignore, and error tallies.
 
     Example:
-        >>> from oxide.decor import ignore, run_tests, should_panic, test
+        >>> from oxide.core import ignore, run_tests, should_panic, test
         >>> @test
         ... def test_ok():
         ...     return 1

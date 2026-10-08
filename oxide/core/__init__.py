@@ -26,3 +26,15 @@ from .traits import (
     clone, debug, display, default_of, from_, into,
     try_from, try_into, as_ref, as_mut, deref, deref_mut, drop,
 )
+
+from .masterclass import (
+    masterclass, mastermethod, MasterMethod, is_master,
+)
+from .items import (
+
+    path, no_mangle, used, cold, naked, link, link_name, crate_type, crate_name,
+    repr_, repr_kinds_of, track_caller, caller_location,
+    main, TestResult, test, bench, tests, benches, run_tests,
+    ignore, ignored_reason, is_ignored, is_test, is_bench,
+    serial, is_serial, should_panic, should_panic_of,
+)

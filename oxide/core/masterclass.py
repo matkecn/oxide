@@ -30,7 +30,7 @@ duplicating the signature. That is the same reach Rust gives an associated
 function and a method separately, folded into one callable.
 
 Example:
-    >>> from oxide.decor import masterclass
+    >>> from oxide.core import masterclass
     >>> class Counter:
     ...     total = 0
     ...     def __init__(self, step):
@@ -68,7 +68,7 @@ class MasterMethod(Generic[F]):
         func (Callable): The undecorated function, kept for introspection.
 
     Example:
-        >>> from oxide.decor.masterclass import MasterMethod
+        >>> from oxide.core.masterclass import MasterMethod
         >>> class Greeter:
         ...     def __init__(self, who):
         ...         self.who = who
@@ -184,7 +184,7 @@ def masterclass(target: F | None = None) -> Any:
             be silently discarded.
 
     Example:
-        >>> from oxide.decor import masterclass
+        >>> from oxide.core import masterclass
         >>> class Builder:
         ...     def __init__(self, parts):
         ...         self.parts = parts
@@ -244,7 +244,7 @@ def mastermethod(target: F | None = None) -> Any:
             be silently discarded.
 
     Example:
-        >>> from oxide.decor import mastermethod
+        >>> from oxide.core import mastermethod
         >>> class Builder:
         ...     def __init__(self, parts):
         ...         self.parts = parts
@@ -304,7 +304,7 @@ def mastermethod(target: F | None = None) -> Any:
             be silently discarded.
 
     Example:
-        >>> from oxide.decor import mastermethod
+        >>> from oxide.core import mastermethod
         >>> class Builder:
         ...     def __init__(self, parts):
         ...         self.parts = parts
@@ -363,7 +363,7 @@ def mastermethod(target: F | None = None) -> Any:
             be silently discarded.
 
     Example:
-        >>> from oxide.decor import mastermethod
+        >>> from oxide.core import mastermethod
         >>> class Builder:
         ...     def __init__(self, parts):
         ...         self.parts = parts
@@ -411,7 +411,7 @@ def is_master(target: Any) -> bool:
         bool: True when ``target`` is a :class:`MasterMethod`.
 
     Example:
-        >>> from oxide.decor import is_master
+        >>> from oxide.core import is_master
         >>> class Thing:
         ...     @masterclass()
         ...     def go(cls, self):

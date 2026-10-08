@@ -201,15 +201,14 @@ from .derive import (
     set_lint_level, get_lint_level, reset_lints,
 )
 
-from .decor import (
-    masterclass, mastermethod, MasterMethod, is_master,
-    cfg as cfg_,
+from .core import (masterclass, MasterMethod, is_master, mastermethod,
+
+
     no_mangle, used, cold, naked, link, link_name, crate_type, crate_name,
     repr_, repr_kinds_of, track_caller, caller_location,
     main, TestResult, test, bench, tests, benches, run_tests,
     ignore, ignored_reason, is_ignored, is_test, is_bench,
     serial, is_serial, should_panic, should_panic_of,
-    enable_feature, reset_features,
 )
 
 from .logging import (
@@ -309,7 +308,7 @@ __all__ = [
     "set_lint_level", "get_lint_level", "reset_lints",
     # decor
     "masterclass", "MasterMethod", "is_master",
-    "cfg_", "enable_feature", "reset_features",
+    "cfg_", 
     "no_mangle", "used", "cold", "naked", "link", "link_name",
     "crate_type", "crate_name",
     "repr_", "repr_kinds_of", "track_caller", "caller_location",
